@@ -4,4 +4,12 @@
 # This script is a first aproximation to extract flexpart
 # output information using python
 # ===========================================================
-# 
+
+import os
+import glob
+
+# == Define parameters ======================================
+# path to some grid files
+dataPath = 'testData/test1_DoesThisWork/output/'
+# ===========================================================
+
