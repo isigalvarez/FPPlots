@@ -1,0 +1,26 @@
+ # ibdate,ibtime, iedate, ietime, flexversion
+    20170810      100000    20170811      100000 Version 10.2beta (2017-08-01)
+ # interval, averaging time, sampling time
+        3600        3600         900
+ # information on grid setup    
+ #outlon0,outlat0,numxgrid,numygrid,dxout,dyout
+  -25.0000000       10.0000000              85          65   1.00000000       1.00000000    
+ # numzgrid, outheight(.) 
+           4   100.000000       500.000000       1000.00000       50000.0000    
+ # jjjjmmdd,ihmmss
+    20170810      100000
+ # information on species
+ # 3*nspec,maxpointspec_act
+           3           1
+ # for nspec:
+ # 1, WD_ 
+ # 1, DD_ 
+ # numzgrid,species
+           1 WD_AIRTRAC
+           1 DD_AIRTRAC
+           4 AIRTRACER 
+ # information on model switches
+ # method,lsubgrid,lconvection, ind_source,ind_receptor
+           0           0           1           1           1
+ # information on age class     
+           1   999999999
