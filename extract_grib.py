@@ -6,10 +6,11 @@
 # ===========================================================
 
 import os
+import struct
 
 # == Define parameters ======================================
 # Path to some grid files
-dataPath = 'testData/test1_DoesThisWork/output/'
+dataPath = 'testData/output_02_MassPlumeTrajectories/'
 # ===========================================================
 
 # == Classifying data =======================================
@@ -22,6 +23,11 @@ files_ppos = [f for f in files_all if f.startswith('partposit') == True]
 # ===========================================================
 
 # == Trying to extract info =================================
-
-
-
+# Open the last file about particles positions
+filePath = dataPath + files_ppos[-1]
+# Open the file ('rb' is for read binary)
+with open(filePath,'rb') as f:
+    for i in range(1,10):
+        print(f'Iteration {i} result:')
+        rl = struct.unpack('<i',f.read(4))
+        print(rl)
