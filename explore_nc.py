@@ -57,7 +57,7 @@ def plotMap_contour(lat,lon,data,fsize=(12, 10)):
     fig = plt.figure(figsize=fsize)
     ax = plt.axes(projection=ccrs.PlateCarree())
     # Find and stablish its limits
-    lon_max = np.ceil(lon.max())
+    lon_max = np.ceil(lon.max())   
     lon_min = np.floor(lon.min())
     lat_max = np.ceil(lat.max())
     lat_min = np.floor(lat.min())
@@ -66,12 +66,12 @@ def plotMap_contour(lat,lon,data,fsize=(12, 10)):
     ax.coastlines('50m', linewidth=1, color='black')
     # Prepare the grid
     gd = ax.gridlines(crs=ccrs.PlateCarree(),draw_labels=True,
-                        )
+                        linewidth=1,linestyle='--',color='k',
+                        alpha=0.5)
     gd.xlabels_top = False  # Take out upper labels
     gd.ylabels_right = False  # Take out right labels
     gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
     gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
-    gd.
     # Plot the data and show it
     ax.contour(lon,lat,data)
     # return the figure just in case
@@ -131,8 +131,6 @@ if __name__ == '__main__':
     # Call 'extract_nc'
     time,hgt,lat,lon,data = extract_nc(filePath)
     # Call 'plotMap_contour' to check that it works
-    fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
+    # fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
     # Call 'savePlot_toPDF'
-    time = time[:10]
     savePlot_toPDF(time,hgt,lat,lon,data)
-
