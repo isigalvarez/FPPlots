@@ -11,7 +11,7 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
 from netCDF4 import Dataset
-
+from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # == Extract Data ===========================================
@@ -76,6 +76,33 @@ def plotMap_contour(lat, lon, data, fsize=(12, 10), dpi=200):
     return (fig,ax)
 # ===========================================================
 
+# == Save plotted data to pdf ===============================
+def savePlot_toPDF(time,hgt,lat,lon,data,plotFunction):
+    '''
+    This function will iteratively plot data on a map over a
+    time and height series and save the plots to a pdf.
+
+    'time'  list of timesteps in seconds
+    'hgt'   list a heights in meters
+    'lat'   list of latitude points
+    'lon'   list of longitude points
+    'data'  Contains the data to be plotted. It should be an
+            array with dimensions (time,hgt,lat,lon)
+    '''
+    # Iterate over heights
+    for idx_h in range(len(hgt)):
+        # Build the name for the pdf
+        savePDF = f'mapPDF_{hgt}_{time[0]}'
+        # Start a new pdf
+        with PdfPages(savePDF) as pdf:
+            # Iterate over time
+            for idx_t in range(len(hgt)):
+                # Call the function
+                fig,ax = plotFunction(lat,lon,data[idx_t,idx_h,:,:])
+                # Save to pdf 
+                pdf.savefig()
+
+# ===========================================================
 
 if __name__ == '__main__':
     # == Define parameters ==================================
@@ -95,5 +122,8 @@ if __name__ == '__main__':
     # == Extract the data ===================================
     # Call 'extract_nc'
     time,hgt,lat,lon,data = extract_nc(filePath)
-    # Call' plot_map's
+    # Call 'plotMap_contour' to check that it works
     fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
+    # Call 'savePlot_toPDF'
+    savePlot_toPDF(time,hgt,lat,lon,data,plotMap_contour())
+
