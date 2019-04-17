@@ -65,11 +65,13 @@ def plotMap_contour(lat,lon,data,fsize=(12, 10)):
     # Draw coastlines
     ax.coastlines('50m', linewidth=1, color='black')
     # Prepare the grid
-    grid = ax.gridlines(draw_labels=True)
-    grid.xlabels_top = False  # Take out upper labels
-    grid.ylabels_right = False  # Take out right labels
-    grid.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
-    grid.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+    gd = ax.gridlines(crs=ccrs.PlateCarree(),draw_labels=True,
+                        )
+    gd.xlabels_top = False  # Take out upper labels
+    gd.ylabels_right = False  # Take out right labels
+    gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
+    gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+    gd.
     # Plot the data and show it
     ax.contour(lon,lat,data)
     # return the figure just in case
