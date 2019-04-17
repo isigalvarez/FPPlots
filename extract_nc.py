@@ -6,7 +6,14 @@
 # ===========================================================
 
 import os
+import numpy as np
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
+
 from netCDF4 import Dataset
+from mpl_toolkits.basemap import Basemap, cm
+
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # == Extract Data ===========================================
 def extract_nc(filePath):
@@ -42,8 +49,32 @@ def extract_nc(filePath):
 # ===========================================================
 
 # == Plot Data ==============================================
-
-
+def plot_map(lat, lon, data, fsize=(12, 10), dpi=200):
+    '''
+    This function plots a simple map to take a quick look 
+    about some datapoints. 
+    '''
+    # Create figure and axes
+    fig = plt.figure(figsize=fsize)
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    # Find and stablish its limits
+    lon_max = np.ceil(lon.max())
+    lon_min = np.floor(lon.min())
+    lat_max = np.ceil(lat.max())
+    lat_min = np.floor(lat.min())
+    ax.axis([lon_min, lon_max, lat_min, lat_max])
+    # Draw coastlines
+    ax.coastlines('50m', linewidth=1, color='k')
+    # Prepare the grid
+    grid = ax.gridlines(draw_labels=True)
+    grid.xlabels_top = False  # Take out upper labels
+    grid.ylabels_right = False  # Take out right labels
+    grid.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
+    grid.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+    # Plot the data and show it
+    ax.contour(lon,lat,data)
+    # return the figure just in case
+    return (fig,ax)
 # ===========================================================
 
 
@@ -64,4 +95,6 @@ if __name__ == '__main__':
 
     # == Extract the data ===================================
     # Call 'extract_nc'
-    data = extract_nc(filePath)
+    time,hgt,lat,lon,data = extract_nc(filePath)
+    # Call' plot_map's
+    fig, ax = plot_map(lat,lon,data[77,1,:,:])
