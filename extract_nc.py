@@ -1,4 +1,4 @@
-#!usr/bin/env python3
+# !usr/bin/env python3
 # ===========================================================
 # 16/04/2019
 # This script is a first aproximation to extract flexpart
@@ -11,7 +11,6 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
 from netCDF4 import Dataset
-from mpl_toolkits.basemap import Basemap, cm
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
@@ -49,7 +48,7 @@ def extract_nc(filePath):
 # ===========================================================
 
 # == Plot Data ==============================================
-def plot_map(lat, lon, data, fsize=(12, 10), dpi=200):
+def plotMap_contour(lat, lon, data, fsize=(12, 10), dpi=200):
     '''
     This function plots a simple map to take a quick look 
     about some datapoints. 
@@ -97,4 +96,4 @@ if __name__ == '__main__':
     # Call 'extract_nc'
     time,hgt,lat,lon,data = extract_nc(filePath)
     # Call' plot_map's
-    fig, ax = plot_map(lat,lon,data[77,1,:,:])
+    fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
