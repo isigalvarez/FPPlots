@@ -48,7 +48,7 @@ def extract_nc(filePath):
 # ===========================================================
 
 # == Plot Data ==============================================
-def plotMap_contour(lat, lon, data, fsize=(12, 10), dpi=200):
+def plotMap_contour(lat,lon,data,fsize=(12, 10)):
     '''
     This function plots a simple map to take a quick look 
     about some datapoints. 
@@ -77,7 +77,7 @@ def plotMap_contour(lat, lon, data, fsize=(12, 10), dpi=200):
 # ===========================================================
 
 # == Save plotted data to pdf ===============================
-def savePlot_toPDF(time,hgt,lat,lon,data,plotFunction):
+def savePlot_toPDF(time,hgt,lat,lon,data):
     '''
     This function will iteratively plot data on a map over a
     time and height series and save the plots to a pdf.
@@ -89,18 +89,25 @@ def savePlot_toPDF(time,hgt,lat,lon,data,plotFunction):
     'data'  Contains the data to be plotted. It should be an
             array with dimensions (time,hgt,lat,lon)
     '''
+    # Display something
+    print('Printing figures!')
     # Iterate over heights
     for idx_h in range(len(hgt)):
         # Build the name for the pdf
-        savePDF = f'mapPDF_{hgt}_{time[0]}'
+        savePDF = f'mapPDF_{hgt[idx_h]}_{time[0]}.pdf'
         # Start a new pdf
         with PdfPages(savePDF) as pdf:
             # Iterate over time
-            for idx_t in range(len(hgt)):
+            for idx_t in range(len(time)):
                 # Call the function
-                fig,ax = plotFunction(lat,lon,data[idx_t,idx_h,:,:])
+                fig,ax = plotMap_contour(lat,lon,data[idx_t,idx_h,:,:])
+                ax.set_title(f'Output for:')
                 # Save to pdf 
                 pdf.savefig()
+                # Close the existing figure
+                plt.close()
+    # Say that you're done
+    print('Done!')
 
 # ===========================================================
 
@@ -125,5 +132,5 @@ if __name__ == '__main__':
     # Call 'plotMap_contour' to check that it works
     fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
     # Call 'savePlot_toPDF'
-    savePlot_toPDF(time,hgt,lat,lon,data,plotMap_contour())
+    savePlot_toPDF(time,hgt,lat,lon,data)
 
