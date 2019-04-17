@@ -23,7 +23,7 @@ def extract_nc(filePath):
     It return a tuple containing the time, height, latitude,
     longitude and the airtracer data. 
     The airtracer is an array with 4 dimensions related to time,
-    latiude and longitude, in that order. 
+    height, latiude and longitude, in that order. 
     '''
     # Create a dataset
     data = Dataset(filePath)
@@ -131,6 +131,6 @@ if __name__ == '__main__':
     # Call 'extract_nc'
     time,hgt,lat,lon,data = extract_nc(filePath)
     # Call 'plotMap_contour' to check that it works
-    # fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
+    fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
     # Call 'savePlot_toPDF'
     savePlot_toPDF(time,hgt,lat,lon,data)
