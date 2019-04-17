@@ -1,8 +1,8 @@
 # !usr/bin/env python3
 # ===========================================================
-# 16/04/2019
+# Created on 16/04/2019
 # This script is a first aproximation to extract flexpart
-# output information using python
+# output information from a nc file using python
 # ===========================================================
 
 import os
@@ -79,24 +79,26 @@ def plotMap_contour(lat,lon,data,fsize=(12, 10)):
 # ===========================================================
 
 # == Save plotted data to pdf ===============================
-def savePlot_toPDF(time,hgt,lat,lon,data):
+def savePlot_toPDF(saveHeader,time,hgt,lat,lon,data):
     '''
     This function will iteratively plot data on a map over a
     time and height series and save the plots to a pdf.
 
-    'time'  list of timesteps in seconds
-    'hgt'   list a heights in meters
-    'lat'   list of latitude points
-    'lon'   list of longitude points
-    'data'  Contains the data to be plotted. It should be an
-            array with dimensions (time,hgt,lat,lon)
+    'saveHeader'    string defining the begin of the filename
+    'time'          list of timesteps in seconds
+    'hgt'           list a heights in meters
+    'lat'           list of latitude points
+    'lon'           list of longitude points
+    'data'          Contains the data to be plotted. It should 
+                    be an array with dimensions:
+                    (time,hgt,lat,lon)
     '''
     # Display something
     print('Printing figures!')
     # Iterate over heights
     for idx_h in range(len(hgt)):
         # Build the name for the pdf
-        savePDF = f'mapPDF_height-{hgt[idx_h]}.pdf'
+        savePDF = f'{saveHeader}_height-{hgt[idx_h]}.pdf'
         # Start a new pdf
         with PdfPages(savePDF) as pdf:
             # Iterate over time
@@ -116,6 +118,7 @@ if __name__ == '__main__':
     # == Define parameters ==================================
     # Path to some grid files
     dataPath = 'testData/output_03_MassPlumeTrajectories_netCDF/'
+    # dataPath = 'testData/output_05_BwdTraj_SegunManual_netCDF/'
     # =======================================================
 
     # == Find data files ====================================
@@ -133,4 +136,5 @@ if __name__ == '__main__':
     # Call 'plotMap_contour' to check that it works
     fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
     # Call 'savePlot_toPDF'
-    savePlot_toPDF(time,hgt,lat,lon,data)
+    saveHeader = 'map_output03'
+    savePlot_toPDF(saveHeader,time,hgt,lat,lon,data)
