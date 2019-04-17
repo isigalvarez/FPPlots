@@ -63,7 +63,7 @@ def plotMap_contour(lat,lon,data,fsize=(12, 10)):
     lat_min = np.floor(lat.min())
     ax.axis([lon_min, lon_max, lat_min, lat_max])
     # Draw coastlines
-    ax.coastlines('50m', linewidth=1, color='k')
+    ax.coastlines('50m', linewidth=1, color='black')
     # Prepare the grid
     grid = ax.gridlines(draw_labels=True)
     grid.xlabels_top = False  # Take out upper labels
@@ -94,21 +94,20 @@ def savePlot_toPDF(time,hgt,lat,lon,data):
     # Iterate over heights
     for idx_h in range(len(hgt)):
         # Build the name for the pdf
-        savePDF = f'mapPDF_{hgt[idx_h]}_{time[0]}.pdf'
+        savePDF = f'mapPDF_height-{hgt[idx_h]}.pdf'
         # Start a new pdf
         with PdfPages(savePDF) as pdf:
             # Iterate over time
             for idx_t in range(len(time)):
                 # Call the function
                 fig,ax = plotMap_contour(lat,lon,data[idx_t,idx_h,:,:])
-                ax.set_title(f'Output for:')
+                ax.set_title(f'{time[idx_t]} s from the beginning')
                 # Save to pdf 
                 pdf.savefig()
                 # Close the existing figure
                 plt.close()
     # Say that you're done
     print('Done!')
-
 # ===========================================================
 
 if __name__ == '__main__':
@@ -132,5 +131,6 @@ if __name__ == '__main__':
     # Call 'plotMap_contour' to check that it works
     fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
     # Call 'savePlot_toPDF'
+    time = time[:10]
     savePlot_toPDF(time,hgt,lat,lon,data)
 
