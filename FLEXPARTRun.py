@@ -21,38 +21,38 @@ def testing():
     # Prepare the files (VERIFIED)
     FPRun.prepareFiles()
     # # == Prepare the COMMAND file =========================
-    # Try to print the COMMAND parameters (VERIFIED)
-    FPRun.print_COMMAND()
-    # Write the COMMAND with default options (VERIFIED)
-    FPRun.write_COMMAND()
-    FPRun.print_COMMAND()
-    # Write the COMMAND with different options (VERIFIED)
-    params = {'LDIRECT': 1}
-    FPRun.write_COMMAND(params)
-    FPRun.print_COMMAND()
-    # == Prepare the RELEASES file =========================
-    # Try to print the RELEASES parameters (VERIFIED)
-    FPRun.print_RELEASES()
-    # Write the RELEASES with default options (VERIFIED)
-    FPRun.write_RELEASES()
-    FPRun.print_RELEASES()
-    # Write the RELEASES with different options (VERIFIED)
-    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
-               'IDATE2': 20170831, 'ITIME2': 100000},
-              {'IDATE1': 20170831, 'ITIME1': 110000,
-               'IDATE2': 20170831, 'ITIME2': 120000}]
-    FPRun.write_RELEASES(params)
-    FPRun.print_RELEASES()
-    # == Prepare the OUTGRID file =========================
-    # Try to print the OUTGRID parameters (VERIFIED)
-    FPRun.print_OUTGRID()
-    # Write the OUTGRID with default options (VERIFIED)
-    FPRun.write_OUTGRID()
-    FPRun.print_OUTGRID()
-    # Write the OUTGRID with different options (VERIFIED)
-    params = {'OUTLON0': -90}
-    FPRun.write_OUTGRID(params)
-    FPRun.print_OUTGRID()
+    # # Try to print the COMMAND parameters (VERIFIED)
+    # FPRun.print_COMMAND()
+    # # Write the COMMAND with default options (VERIFIED)
+    # FPRun.write_COMMAND()
+    # FPRun.print_COMMAND()
+    # # Write the COMMAND with different options (VERIFIED)
+    # params = {'LDIRECT': 1}
+    # FPRun.write_COMMAND(params)
+    # FPRun.print_COMMAND()
+    # # == Prepare the RELEASES file =========================
+    # # Try to print the RELEASES parameters (VERIFIED)
+    # FPRun.print_RELEASES()
+    # # Write the RELEASES with default options (VERIFIED)
+    # FPRun.write_RELEASES()
+    # FPRun.print_RELEASES()
+    # # Write the RELEASES with different options (VERIFIED)
+    # params = [{'IDATE1': 20170831, 'ITIME1': 90000,
+    #            'IDATE2': 20170831, 'ITIME2': 100000},
+    #           {'IDATE1': 20170831, 'ITIME1': 110000,
+    #            'IDATE2': 20170831, 'ITIME2': 120000}]
+    # FPRun.write_RELEASES(params)
+    # FPRun.print_RELEASES()
+    # # == Prepare the OUTGRID file =========================
+    # # Try to print the OUTGRID parameters (VERIFIED)
+    # FPRun.print_OUTGRID()
+    # # Write the OUTGRID with default options (VERIFIED)
+    # FPRun.write_OUTGRID()
+    # FPRun.print_OUTGRID()
+    # # Write the OUTGRID with different options (VERIFIED)
+    # params = {'OUTLON0': -90}
+    # FPRun.write_OUTGRID(params)
+    # FPRun.print_OUTGRID()
 
 
 class FlexpartRun:
@@ -105,12 +105,14 @@ class FlexpartRun:
         # Save outputdir location
         self.outputPath = os.path.abspath(self.dirPath+'/output/')
         # Create the pathnames
-        with open(self.dirPath+'pathnames.txt', 'w+') as f:
+        with open(f'{self.dirPath}/pathnames.txt', 'w+') as f:
             # Write the locations
-            f.writelines(self.optionsPath+'\n')
-            f.writelines(self.outputPath+'\n')
-            f.writelines(self.meteoPath+'\n')
-            f.writelines(self.meteoPath+'AVAILABLE\n')
+            f.writelines(f'{self.optionsPath} \n')
+            f.writelines(f'{self.outputPath} \n')
+            f.writelines(f'{self.meteoPath} \n')
+            # Define the AVAILABLE path and write it
+            availablePath = os.path.abspath(self.meteoPath+'/AVAILABLE')
+            f.writelines(f'{availablePath} \n')
         # Save pathnames location
         self.pathnamesPath = os.path.abspath(self.dirPath+'pathnames.txt')
 
