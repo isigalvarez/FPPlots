@@ -27,7 +27,7 @@ def testing():
     FPRun.write_COMMAND()
     FPRun.print_COMMAND()
     # Write the COMMAND with different options (VERIFIED)
-    params = {'LDIRECT':1}
+    params = {'LDIRECT': 1}
     FPRun.write_COMMAND(params)
     FPRun.print_COMMAND()
     # == Prepare the RELEASES file =========================
@@ -50,7 +50,7 @@ def testing():
     FPRun.write_OUTGRID()
     FPRun.print_OUTGRID()
     # Write the OUTGRID with different options (VERIFIED)
-    params = {'OUTLON0':-90}
+    params = {'OUTLON0': -90}
     FPRun.write_OUTGRID(params)
     FPRun.print_OUTGRID()
 
