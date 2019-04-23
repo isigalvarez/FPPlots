@@ -128,14 +128,14 @@ class FlexpartRun:
         # Save outputdir location
         self.outputPath = os.path.abspath(self.dirPath+'/output/')
         # Create the pathnames
-        with open(f'{self.dirPath}/pathnames', 'w+', newline='') as f:
+        with open(f'{self.dirPath}/pathnames', 'w+', newline='\r\n') as f:
             # Write the locations
-            f.writelines(f'{self.optionsPath}/ \n')
-            f.writelines(f'{self.outputPath}/ \n')
-            f.writelines(f'{self.meteoPath}/ \n')
+            f.write(f'{self.optionsPath}/ \n')
+            f.write(f'{self.outputPath}/ \n')
+            f.write(f'{self.meteoPath}/ \n')
             # Define the AVAILABLE path and write it
             availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
-            f.writelines(f'{availablePath} \n')
+            f.write(f'{availablePath} \n')
         # Save pathnames location
         self.pathnamesPath = os.path.abspath(self.dirPath+'pathnames')
 
@@ -167,12 +167,12 @@ class FlexpartRun:
         # Open a new COMMAND file
         with open(self.optionsPath+'/COMMAND', 'w',encoding='utf-8',newline='\n') as f:
             # Write the first line
-            f.writelines('&COMMAND \n')
+            f.write('&COMMAND \n')
             # Iterate over the parameters
             for key in self.command.keys():
-                f.writelines(f' {key}= {self.command[key]}, \n')
+                f.write(f' {key}= {self.command[key]}, \n')
             # Write the final line
-            f.writelines(' /')
+            f.write(' /')
 
     def print_COMMAND(self):
         """
@@ -220,25 +220,25 @@ class FlexpartRun:
         # Open the new COMMAND file
         with open(self.optionsPath+'/RELEASES', 'w+', newline='') as f:
             # Write the first lines
-            f.writelines('&RELEASES_CTRL \n')
-            f.writelines(f' NSPEC ={len(self.releases)}, \n')
+            f.write('&RELEASES_CTRL \n')
+            f.write(f' NSPEC ={len(self.releases)}, \n')
             # Build a string with the type of release
             label = ''
             for i in range(len(self.releases)):
                 label += ' 24,'  # <= Only considering AIRTRACER
             # Write the line excluding the last comma
-            f.writelines(f' SPECNUM_REL = {label[:-1]} \n')
+            f.write(f' SPECNUM_REL = {label[:-1]} \n')
             # Write the finishing line
-            f.writelines(' / \n')
+            f.write(' / \n')
             # Iterate over each release
             for release in self.releases:
                 # Write the first line
-                f.writelines('&RELEASE \n')
+                f.write('&RELEASE \n')
                 # Write the lines in params
                 for key in release.keys():
-                    f.writelines(f' {key}= {release[key]}, \n')
+                    f.write(f' {key}= {release[key]}, \n')
                 # Write the final line
-                f.writelines('/ \n')
+                f.write('/ \n')
 
     def print_RELEASES(self):
         """
@@ -277,12 +277,12 @@ class FlexpartRun:
         # Open a new OUTGRID file
         with open(self.optionsPath+'/OUTGRID', 'w+', newline='') as f:
             # Write the first line
-            f.writelines('&OUTGRID \n')
+            f.write('&OUTGRID \n')
             # Iterate over the parameters
             for key in self.outgrid.keys():
-                f.writelines(f' {key}= {self.outgrid[key]}, \n')
+                f.write(f' {key}= {self.outgrid[key]}, \n')
             # Write the final line
-            f.writelines('/')
+            f.write('/')
 
     def print_OUTGRID(self):
         """
