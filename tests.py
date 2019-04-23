@@ -12,7 +12,7 @@ from FLEXPARTRun import *
 dirPath = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_02/'
 flexpartPath = '/home/isi/FLEXPART/flexpart10_git/'
 meteoPath = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
-params = [  { 'IDATE1': 20170831, 'ITIME1': 105900,
+params = [  {   'IDATE1': 20170831, 'ITIME1': 105900,
                 'IDATE2': 20170831, 'ITIME2': 110000,
                 'LON1': -22.981, 'LON2': -22.952,
                 'LAT1': 16.786, 'LAT2': 16.787,
