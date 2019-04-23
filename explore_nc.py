@@ -117,8 +117,15 @@ def savePlot_toPDF(saveHeader,time,hgt,lat,lon,data):
 if __name__ == '__main__':
     # == Define parameters ==================================
     # Path to some grid files
-    dataPath = 'testData/output_03_MassPlumeTrajectories_netCDF/'
+    #dataPath = 'testData/output_03_MassPlumeTrajectories_netCDF/'
     # dataPath = 'testData/output_05_BwdTraj_SegunManual_netCDF/'
+    # Directories under ubuntu
+    #dataPath = '/home/isi/FLEXPART/flexpart10_git/Runs/Cafe02_withERA5/output_01_bwdPlume_3600s/'
+    #dataPath = '/home/isi/FLEXPART/flexpart10_git/Runs/Cafe02_withERA5/output_02_bwdPlume_1800s/'
+    #dataPath = '/home/isi/FLEXPART/flexpart10_git/Runs/Cafe02_withERA5/output_03_bwdPlume_900s/'
+    dataPath = '/home/isi/FLEXPART/flexpart10_git/Runs/Cafe02_withERA5/output_04_bwdPlume_600s/'
+    #dataPath = '/home/isi/FLEXPART/flexpart10_git/Runs/Cafe02_withERA5/output_05_bwdPlume_300s/'
+
     # =======================================================
 
     # == Find data files ====================================
@@ -134,7 +141,7 @@ if __name__ == '__main__':
     # Call 'extract_nc'
     time,hgt,lat,lon,data = extract_nc(filePath)
     # Call 'plotMap_contour' to check that it works
-    fig, ax = plotMap_contour(lat,lon,data[77,1,:,:])
+    #fig, ax = plotMap_contour(lat,lon,data[70,1,:,:])
     # Call 'savePlot_toPDF'
-    saveHeader = 'map_output03'
+    saveHeader = 'map_output04'
     savePlot_toPDF(saveHeader,time,hgt,lat,lon,data)
