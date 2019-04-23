@@ -2,12 +2,17 @@
 # ===========================================================
 # Created on 22/04/2019
 # This script defines a class to handle FLEXPART runs.
+#
+# The script needs to install the f90nml package to write 
+# fortran namelists, see:
+# https://github.com/marshallward/f90nml
 # ===========================================================
 
 import os
 import shutil
 import errno
 import subprocess
+import f90nml
 
 def main():
     # Define paths
@@ -23,10 +28,14 @@ def main():
     FPRun.prepareFiles()
     # == Prepare the files for standard run ===============
     FPRun.write_COMMAND()
-    FPRun.write_RELEASES()
+    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
+               'IDATE2': 20170831, 'ITIME2': 100000},
+              {'IDATE1': 20170831, 'ITIME1': 110000,
+               'IDATE2': 20170831, 'ITIME2': 120000}]
+    FPRun.write_RELEASES(params)
     FPRun.write_OUTGRID()
     # == Run the simulation ===============================
-    FPRun.run()
+    # FPRun.run()
 
 def testing():
     # Define parameters
@@ -99,6 +108,15 @@ class FlexpartRun:
         # Define OUTGRID parameters
         self.outgrid = {}
         # == Derived parameters == #
+        # options ans output dirs and pathnames file location
+        self.optionsPath = os.path.abspath(self.dirPath+'/options/')
+        self.outputPath = os.path.abspath(self.dirPath+'/output/')
+        self.pathnamesPath = os.path.abspath(self.dirPath+'/pathnames')
+        # COMMAND, RELEASES and OUTGRID file location
+        self.commandPath = os.path.abspath(self.optionsPath+'/COMMAND')
+        self.releasesPath = os.path.abspath(self.optionsPath+'/RELEASES')
+        self.outgridPath = os.path.abspath(self.optionsPath+'/OUTGRID')
+        # FLEPART executable location
         self.runFlexpart = os.path.abspath(self.flexpartPath+'/src/FLEXPART')
 
     def prepareFiles(self):
@@ -112,23 +130,19 @@ class FlexpartRun:
         # Copy the 'options' directory form 'flexpartPath'
         try:
             shutil.copytree(self.flexpartPath+'/options',
-                            self.dirPath+'/options/')
+                            self.optionsPath)
         except OSError as e:
             # If the error was caused because the source wasn't a directory
             if e.errno == errno.ENOTDIR:
                 shutil.copy(self.flexpartPath+'/options/',
-                            self.dirPath+'/options/')
+                            self.optionsPath)
             else:
                 print(f'Directory not copied. Error: {e}')
-        # Save options dir location
-        self.optionsPath = os.path.abspath(self.dirPath+'/options/')
         # Create the output directory
         if not os.path.exists(self.dirPath+'/output'):
-            os.makedirs(self.dirPath+'/output')
-        # Save outputdir location
-        self.outputPath = os.path.abspath(self.dirPath+'/output/')
+            os.makedirs(self.outputPath)
         # Create the pathnames
-        with open(f'{self.dirPath}/pathnames', 'w+', newline='\r\n') as f:
+        with open(f'{self.pathnamesPath}', 'w+', newline='\r\n') as f:
             # Write the locations
             f.write(f'{self.optionsPath}/ \n')
             f.write(f'{self.outputPath}/ \n')
@@ -136,8 +150,6 @@ class FlexpartRun:
             # Define the AVAILABLE path and write it
             availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
             f.write(f'{availablePath} \n')
-        # Save pathnames location
-        self.pathnamesPath = os.path.abspath(self.dirPath+'pathnames')
 
     def write_COMMAND(self, params={}):
         """
@@ -145,34 +157,31 @@ class FlexpartRun:
         configure the simulation
         """
         # Define defaults
-        self.command = {'LDIRECT': '-1',
-                        'IBDATE': '20170829', 'IBTIME': '000000',
-                        'IEDATE': '20170831', 'IETIME': '230000',
-                        'LOUTSTEP': '300', 'LOUTAVER': '300',
-                        'LOUTSAMPLE': '100', 'ITSPLIT': '99999999', 
-                        'LSYNCTIME': '100', 'CTL': '-5.00000000',
-                        'IFINE': '4', 'IOUT': '13', 'IPOUT': '1',
-                        'LSUBGRID': '0', 'LCONVECTION': '1', 'LAGESPECTRA': '0',
-                        'IPIN': '0', 'IOUTPUTFOREACHRELEASE': '1', 'IFLUX': '0',
-                        'MDOMAINFILL': '0', 'IND_SOURCE': '1', 'IND_RECEPTOR': '1',
-                        'MQUASILAG': '0', 'NESTED_OUTPUT': '0', 'LINIT_COND': '0',
-                        'SURF_ONLY': '0', 'CBLFLAG': '0',
-                        'OHFIELDS_PATH': '"../../flexin/"'}
+        self.command = {'LDIRECT': -1,
+                        'IBDATE': 20170829, 'IBTIME': 000000,
+                        'IEDATE': 20170831, 'IETIME': 230000,
+                        'LOUTSTEP': 300, 'LOUTAVER': 300,
+                        'LOUTSAMPLE': 100, 'ITSPLIT': 99999999, 
+                        'LSYNCTIME': 100, 'CTL': -5.00000000,
+                        'IFINE': 4, 'IOUT': 13, 'IPOUT': 1,
+                        'LSUBGRID': 0, 'LCONVECTION': 1, 'LAGESPECTRA': 0,
+                        'IPIN': 0, 'IOUTPUTFOREACHRELEASE': 1, 'IFLUX': 0,
+                        'MDOMAINFILL': 0, 'IND_SOURCE': 1, 'IND_RECEPTOR': 1,
+                        'MQUASILAG': 0, 'NESTED_OUTPUT': 0, 'LINIT_COND': 0,
+                        'SURF_ONLY': 0, 'CBLFLAG': 0,
+                        'OHFIELDS_PATH': '../../flexin/'}
         # Redefined the given params
         for key in params.keys():
             self.command[key] = params[key]
-        # Change the existing COMMAND filename
-        os.replace(self.optionsPath+'/COMMAND',
-                   self.optionsPath+'/COMMAND.original')
-        # Open a new COMMAND file
-        with open(self.optionsPath+'/COMMAND', 'w',encoding='utf-8',newline='\n') as f:
-            # Write the first line
-            f.write('&COMMAND \n')
-            # Iterate over the parameters
-            for key in self.command.keys():
-                f.write(f' {key}= {self.command[key]}, \n')
-            # Write the final line
-            f.write(' /')
+        # Create a copy of the existing COMMAND filename
+        shutil.copy(self.commandPath,self.commandPath+'.original')
+        # Open a namelsit with f90nml
+        nml = f90nml.read(self.commandPath+'.original')
+        # Iterate over command and write the change
+        for key in self.command.keys():
+            nml['COMMAND'][key] = self.command[key]
+        nml.write(self.commandPath+'_temp')
+        os.replace(self.commandPath+'_temp',self.commandPath)      
 
     def print_COMMAND(self):
         """
@@ -201,7 +210,7 @@ class FlexpartRun:
                           'LAT1': '16.786', 'LAT2': '16.787',
                           'Z1': '833.51', 'Z2': '833.52',
                           'ZKIND': '1', 'MASS': '100000000.0',
-                          'PARTS': '1000', 'COMMENT': '"RELEASE 1"'}
+                          'PARTS': '10000', 'COMMENT': '"RELEASE 1"'}
         # Initialize the list of releases
         self.releases = []
         # Iterate over params changing what's asked
@@ -219,21 +228,15 @@ class FlexpartRun:
                    self.optionsPath+'/RELEASES.original')
         # Open the new COMMAND file
         with open(self.optionsPath+'/RELEASES', 'w+', newline='') as f:
-            # Write the first lines
+            # Write the lines of &RELEASES_CTRL
             f.write('&RELEASES_CTRL \n')
-            f.write(f' NSPEC ={len(self.releases)}, \n')
-            # Build a string with the type of release
-            label = ''
-            for i in range(len(self.releases)):
-                label += ' 24,'  # <= Only considering AIRTRACER
-            # Write the line excluding the last comma
-            f.write(f' SPECNUM_REL = {label[:-1]} \n')
-            # Write the finishing line
+            f.write(f' NSPEC =1, \n')
+            f.write(f' SPECNUM_REL = 24, \n')
             f.write(' / \n')
+            # Write the first line of &RELEASES
+            f.write('&RELEASE \n')
             # Iterate over each release
             for release in self.releases:
-                # Write the first line
-                f.write('&RELEASE \n')
                 # Write the lines in params
                 for key in release.keys():
                     f.write(f' {key}= {release[key]}, \n')
@@ -262,28 +265,23 @@ class FlexpartRun:
         configure the simulation
         """
         # Define defaults
-        self.outgrid = {'OUTLON0': '-80.0', 'OUTLAT0': '-35.0',
-                        'NUMXGRID': '130', 'NUMYGRID': '100',
-                        'DXOUT': '1.0', 'DYOUT': '1.0',
-                        'OUTHEIGHTS': '100.0, 500.0, 1000.0, 50000.0'}
+        self.outgrid = {'OUTLON0': -80.0, 'OUTLAT0': -35.0,
+                        'NUMXGRID': 130, 'NUMYGRID': 100,
+                        'DXOUT': 1.0, 'DYOUT': 1.0,
+                        'OUTHEIGHTS': [100.0, 500.0, 1000.0, 50000.0]}
         # Redefined the given params
         for key in params.keys():
             self.outgrid[key] = params[key]
-        # Change the existing COMMAND filename
-        os.replace(self.optionsPath+'/OUTGRID',
-                   self.optionsPath+'/OUTGRID.original')
-        # Make sure to delete the existing OUTGRID file
-        # os.remove(self.optionsPath+'/OUTGRID')
-        # Open a new OUTGRID file
-        with open(self.optionsPath+'/OUTGRID', 'w+', newline='') as f:
-            # Write the first line
-            f.write('&OUTGRID \n')
-            # Iterate over the parameters
-            for key in self.outgrid.keys():
-                f.write(f' {key}= {self.outgrid[key]}, \n')
-            # Write the final line
-            f.write('/')
-
+        # Create a copy of the existing OUTGRID filename
+        shutil.copy(self.outgridPath,self.outgridPath+'.original')
+        # Open a namelsit with f90nml
+        nml = f90nml.read(self.outgridPath+'.original')
+        # Iterate over command and write the change
+        for key in self.outgrid.keys():
+            nml['OUTGRID'][key] = self.outgrid[key]
+        nml.write(self.outgridPath+'_temp')
+        os.replace(self.outgridPath+'_temp',self.outgridPath)   
+            
     def print_OUTGRID(self):
         """
         This method prints the current configuration written
@@ -313,6 +311,6 @@ class FlexpartRun:
         return a
 
 if __name__ == '__main__':
-    print('Ready to go!')
+    print('Ready to go!\n')
     # testing()
     main()
