@@ -233,15 +233,15 @@ class FlexpartRun:
             f.write(f' NSPEC =1, \n')
             f.write(f' SPECNUM_REL = 24, \n')
             f.write(' / \n')
-            # Write the first line of &RELEASES
-            f.write('&RELEASE \n')
             # Iterate over each release
             for release in self.releases:
+                # Write the first line of &RELEASES
+                f.write('&RELEASE \n')
                 # Write the lines in params
                 for key in release.keys():
                     f.write(f' {key}= {release[key]}, \n')
                 # Write the final line
-                f.write('/ \n')
+                f.write(' / \n')
 
     def print_RELEASES(self):
         """
