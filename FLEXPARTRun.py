@@ -283,7 +283,7 @@ class FlexpartRun:
             print(('The number of particles exceeds the maximum allowed '
                     + 'by defect (100000). Consider reducing the number '
                     + 'of releases or the number of particles for each '
-                    + 'release.\n'))
+                    + 'release.'))
             print(('Please ignore this message if the maximum number of '
                     + 'particles (maxpart) was changed in the file '
                     + '"par_mod.f90" before FLEXPART compilation.\n'))
