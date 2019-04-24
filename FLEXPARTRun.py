@@ -310,7 +310,7 @@ class FlexpartRun:
         hour = f'{self.command["IETIME"]}'.zfill(6)
         lastDate_command = pd.to_datetime(date+hour)
         # Check initial dates
-        print('\nChecking initial dates...')
+        print('\nChecking initial date...')
         if firstDate_meteo < firstDate_command:
             print(' Initial date is correct.')
         else:
@@ -318,7 +318,7 @@ class FlexpartRun:
             print(f'  First meteo date: {firstDate_meteo}')
             print(f'  First simulation date: {firstDate_command}')
         # Check final dates
-        print('\nChecking final dates...')
+        print('Checking final date...')
         if lastDate_meteo > lastDate_command:
             print(' Final date is correct.')
         else:
