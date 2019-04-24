@@ -17,7 +17,7 @@ sys.path.append(os.path.abspath("/home/isi/GitHub/FPPlots/"))
 # Path to flight
 flightPath = '/home/isi/FLEXPART/CAFE_flightData/Flight13_ITCZ_2017-08-31.csv'
 # Path to FLEXPART dirs
-runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_02/'
+runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_01/'
 flexpartDir = '/home/isi/FLEXPART/flexpart10_git/'
 meteoDir = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
 # ===========================================================
