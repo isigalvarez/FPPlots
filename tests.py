@@ -7,8 +7,17 @@ import subprocess
 import f90nml
 
 sys.path.append(os.path.abspath("/home/isi/GitHub/FPPlots/"))
-from FLEXPARTRun import *
+from FLEXPARTRun import FlexpartRun 
 
+# == Testing os.symlink() =============================================
+dirPath = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_02/'
+flexpartPath = '/home/isi/FLEXPART/flexpart10_git/'
+# We want to create a simlink to FLEXPART inside the simulation root 
+# folder 'FPRun_02'.
+os.symlink(flexpartPath+'src/FLEXPART',dirPath+'FLEXPART')
+# =====================================================================
+
+# == Testing the namelist creation ====================================
 dirPath = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_02/'
 flexpartPath = '/home/isi/FLEXPART/flexpart10_git/'
 meteoPath = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
@@ -28,18 +37,18 @@ params = [  { 'IDATE1': 20170831, 'ITIME1': 105900,
                 'PARTS': 1000, 'COMMENT': 'RELEASE 1'}]
 # Initialize the run
 FPRun = FlexpartRun((dirPath,flexpartPath,meteoPath))
-FPRun.prepareFiles()
 FPRun.write_COMMAND()
 FPRun.write_OUTGRID()
 FPRun.write_RELEASES(params)
-
 # Create a copy of the existing RELEASES filename
 shutil.copy(dirPath+'options/RELEASES',dirPath+'options/RELEASES.original')
 # Open a namelsit with f90nml
 nml = f90nml.read(dirPath+'options/RELEASES.original')
 # Change something
-for key in command.keys():
-    nml['releases'][key] = command[key]
+for param in params:
+    for key in param.keys():
+        nml['releases'][key] = param[key]
 # Write the change
 nml.write(dirPath+'options/RELEASES_temp')
 os.replace(dirPath+'options/RELEASES_temp',dirPath+'options/RELEASES')
+# =====================================================================
