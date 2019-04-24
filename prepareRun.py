@@ -33,15 +33,15 @@ command = FD.gen_COMMAND()
 # == Prepare the FLEXPART run ===============================
 # Initialize the FLEXPART class
 FP = FlexpartRun((runDir, flexpartDir, meteoDir))
-# Prepare the COMMAND and RELEASES files
+# Prepare the COMMAND, RELEASES and OUTGRID files
 FP.write_COMMAND(command)
 FP.write_RELEASES(releases)
-# Check the particles if needed
-n_particles = FP.check_totalParticles()
-if n_particles:
-    FP.change_particlesNumber(n_particles)
-# Prepare OUTGRID
 FP.write_OUTGRID()
+# Check the particles 
+FP.change_particlesNumber(FP.check_totalParticles())
+FP.check_totalParticles()
+# Check meteo encapsulation
+FP.check_meteoRange()
 # Copy the FLEXPART executable
 FP.prepare_Run()
 # ===========================================================
