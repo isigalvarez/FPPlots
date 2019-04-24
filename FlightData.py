@@ -127,6 +127,7 @@ def testing():
     command = FD.gen_COMMAND()
     print(command)
 
+
 def extract_BahamasData_1min():
     """
     This function takes in the file with al Bahamas data with 1
