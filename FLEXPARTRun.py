@@ -13,6 +13,7 @@ import shutil
 import errno
 import subprocess
 import f90nml
+from numpy import floor
 
 
 class FlexpartRun:
@@ -234,7 +235,7 @@ class FlexpartRun:
     def prepare_Run(self):
         """
         This method creates a link to the FLEXPART executable in the
-        simulation directory, laying the grund to easily perform the 
+        simulation directory, laying the grund to easily perform the
         simulation.
         """
         # Try to reate the link
@@ -247,16 +248,60 @@ class FlexpartRun:
         except FileExistsError as e:
             print('\nFLEXPART link already exists. Check directory tree.\n')
 
+    def change_particlesNumber(self, number=1000):
+        """
+        This method allows to rewrite the RELEASES file to change
+        the number of particles for each release.
+        """
+        # Take out the number of releases
+        n = len(self.releases)
+        # Define params
+        params = [{'PARTS': number}]*n
+        # Call write_RELEASES()
+        self.write_RELEASES(params)
+
+    def print_totalparticles(self):
+        """
+        This method shows the total number of particles that will
+        be released. This number should not exceed 100 000.
+
+        This method returns 'None' if the number is ok or a suggested
+        number if there are too many particles
+        """
+        # Initialize the number
+        n_particles = 0
+        # Iterate over releases
+        for release in self.releases:
+            # Add the particles
+            n_particles += int(release['PARTS'])
+        # Print the number and give a warning if needed
+        print(f'\nTotal number of releases: {len(self.releases)}')
+        print(f'\nTotal number of particles released: {n_particles}')
+        # Check the number
+        if n_particles >= 100000:
+            print(f'\n(!) WARNING (!)')
+            print(('The number of particles exceed the maximum allowed '
+                    + 'by defect (100000). Consider reducing the number '
+                    + 'of releases or the number of particles for each '
+                    + 'release.\n'))
+            print(('Please ignore this message if the maximum number of '
+                    + 'particles (maxpart) was changed in the file '
+                    + '"par_mod.f90" before FLEXPART compilation.\n'))
+            # Calculate an appropiate number and return it
+            return int(floor(100000/len(self.releases)))
+        else:
+            return None
+
 
 def testing():
     # Define parameters
-    flexpartPath = 'testData/flexpartdirectorySimulation/'
-    dirPath = 'testData/flexpartConfigDirectory/'
-    meteoPath = 'testData/meteoDirectorySimulation/'
-    paths = (dirPath, flexpartPath, meteoPath)
+    runDir='/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_01/'
+    flexpartDir='/home/isi/FLEXPART/flexpart10_git/'
+    meteoDir='/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
+    paths=(runDir, flexpartDir, meteoDir)
     # ==  Create and prepare an instance of the class =====
     # Create the class (VERIFIED)
-    FPRun = FlexpartRun(paths)
+    FPRun=FlexpartRun(paths)
     # == Prepare the COMMAND file =========================
     # Try to print the COMMAND parameters (VERIFIED)
     FPRun.print_COMMAND()
@@ -264,7 +309,7 @@ def testing():
     FPRun.write_COMMAND()
     FPRun.print_COMMAND()
     # Write the COMMAND with different options (VERIFIED)
-    params = {'LDIRECT': 1}
+    params={'LDIRECT': 1}
     FPRun.write_COMMAND(params)
     FPRun.print_COMMAND()
     # == Prepare the RELEASES file =========================
@@ -274,7 +319,7 @@ def testing():
     FPRun.write_RELEASES()
     FPRun.print_RELEASES()
     # Write the RELEASES with different options (VERIFIED)
-    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
+    params=[{'IDATE1': 20170831, 'ITIME1': 90000,
                'IDATE2': 20170831, 'ITIME2': 100000},
               {'IDATE1': 20170831, 'ITIME1': 110000,
                'IDATE2': 20170831, 'ITIME2': 120000}]
@@ -287,10 +332,15 @@ def testing():
     FPRun.write_OUTGRID()
     FPRun.print_OUTGRID()
     # Write the OUTGRID with different options (VERIFIED)
-    params = {'OUTLON0': -90}
+    params={'OUTLON0': -90}
     FPRun.write_OUTGRID(params)
     FPRun.print_OUTGRID()
+    # == Change the number of particles ===================
+    number=850
+    FPRun.change_particlesNumber(number)
+    FPRun.print_RELEASES()
 
 
 if __name__ == '__main__':
     print('Ready to go!\n')
+    testing()
