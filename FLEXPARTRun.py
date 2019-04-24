@@ -14,71 +14,6 @@ import errno
 import subprocess
 import f90nml
 
-def main():
-    # Define paths
-    dirPath = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_01/'
-    flexpartPath = '/home/isi/FLEXPART/flexpart10_git/'
-    meteoPath = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
-    runPath = flexpartPath+'src/FLEXPART'
-    paths = (dirPath, flexpartPath, meteoPath)
-    # ==  Create and prepare an instance of the class =====
-    # Create the class
-    FPRun = FlexpartRun(paths)
-    # == Prepare the files for standard run ===============
-    FPRun.write_COMMAND()
-    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
-               'IDATE2': 20170831, 'ITIME2': 100000},
-              {'IDATE1': 20170831, 'ITIME1': 110000,
-               'IDATE2': 20170831, 'ITIME2': 120000}]
-    FPRun.write_RELEASES(params)
-    FPRun.write_OUTGRID()
-    # == Run the simulation ===============================
-    # FPRun.run()
-
-def testing():
-    # Define parameters
-    flexpartPath = 'testData/flexpartdirectorySimulation/'
-    dirPath = 'testData/flexpartConfigDirectory/'
-    meteoPath = 'testData/meteoDirectorySimulation/'
-    paths = (dirPath, flexpartPath, meteoPath)
-    # ==  Create and prepare an instance of the class =====
-    # Create the class (VERIFIED)
-    FPRun = FlexpartRun(paths)
-    # == Prepare the COMMAND file =========================
-    # Try to print the COMMAND parameters (VERIFIED)
-    FPRun.print_COMMAND()
-    # Write the COMMAND with default options (VERIFIED)
-    FPRun.write_COMMAND()
-    FPRun.print_COMMAND()
-    # Write the COMMAND with different options (VERIFIED)
-    params = {'LDIRECT': 1}
-    FPRun.write_COMMAND(params)
-    FPRun.print_COMMAND()
-    # == Prepare the RELEASES file =========================
-    # Try to print the RELEASES parameters (VERIFIED)
-    FPRun.print_RELEASES()
-    # Write the RELEASES with default options (VERIFIED)
-    FPRun.write_RELEASES()
-    FPRun.print_RELEASES()
-    # Write the RELEASES with different options (VERIFIED)
-    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
-               'IDATE2': 20170831, 'ITIME2': 100000},
-              {'IDATE1': 20170831, 'ITIME1': 110000,
-               'IDATE2': 20170831, 'ITIME2': 120000}]
-    FPRun.write_RELEASES(params)
-    FPRun.print_RELEASES()
-    # == Prepare the OUTGRID file =========================
-    # Try to print the OUTGRID parameters (VERIFIED)
-    FPRun.print_OUTGRID()
-    # Write the OUTGRID with default options (VERIFIED)
-    FPRun.write_OUTGRID()
-    FPRun.print_OUTGRID()
-    # Write the OUTGRID with different options (VERIFIED)
-    params = {'OUTLON0': -90}
-    FPRun.write_OUTGRID(params)
-    FPRun.print_OUTGRID()
-
-
 class FlexpartRun:
     """
     This is a class that initialize a FLEXPART run creating
@@ -295,20 +230,63 @@ class FlexpartRun:
             for key in self.outgrid:
                 print(f' {key} = {self.outgrid[key]}')
 
-    def run(self):
+    def prepare_Run(self):
         """
-        This method moves to the run directory and launches the
-        FLEXPART simulation
+        This method creates a link to the FLEXPART executable in the
+        simulation directory, laying the grund to easily perform the 
+        simulation.
         """
-        # Move to the directory
-        os.chdir(self.dirPath)
-        # Call FLEXPART
-        print('Running simulation...')
-        a = subprocess.call(self.runFlexpart,shell=True)
-        print('   Done.')
-        return a
+        # Try to reate the link
+        try:
+            os.symlink(f'{self.flexpartPath}/src/FLEXPART',
+                        f'{self.dirPath}/FLEXPART')
+            # Show message
+            print(f'\nSimulation hosted in: \n   {self.dirPath}\nis ready to go.\n')
+        except FileExistsError as e:
+            print('\nFLEXPART link already exists. Check directory tree.\n')
+                
+def testing():
+    # Define parameters
+    flexpartPath = 'testData/flexpartdirectorySimulation/'
+    dirPath = 'testData/flexpartConfigDirectory/'
+    meteoPath = 'testData/meteoDirectorySimulation/'
+    paths = (dirPath, flexpartPath, meteoPath)
+    # ==  Create and prepare an instance of the class =====
+    # Create the class (VERIFIED)
+    FPRun = FlexpartRun(paths)
+    # == Prepare the COMMAND file =========================
+    # Try to print the COMMAND parameters (VERIFIED)
+    FPRun.print_COMMAND()
+    # Write the COMMAND with default options (VERIFIED)
+    FPRun.write_COMMAND()
+    FPRun.print_COMMAND()
+    # Write the COMMAND with different options (VERIFIED)
+    params = {'LDIRECT': 1}
+    FPRun.write_COMMAND(params)
+    FPRun.print_COMMAND()
+    # == Prepare the RELEASES file =========================
+    # Try to print the RELEASES parameters (VERIFIED)
+    FPRun.print_RELEASES()
+    # Write the RELEASES with default options (VERIFIED)
+    FPRun.write_RELEASES()
+    FPRun.print_RELEASES()
+    # Write the RELEASES with different options (VERIFIED)
+    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
+               'IDATE2': 20170831, 'ITIME2': 100000},
+              {'IDATE1': 20170831, 'ITIME1': 110000,
+               'IDATE2': 20170831, 'ITIME2': 120000}]
+    FPRun.write_RELEASES(params)
+    FPRun.print_RELEASES()
+    # == Prepare the OUTGRID file =========================
+    # Try to print the OUTGRID parameters (VERIFIED)
+    FPRun.print_OUTGRID()
+    # Write the OUTGRID with default options (VERIFIED)
+    FPRun.write_OUTGRID()
+    FPRun.print_OUTGRID()
+    # Write the OUTGRID with different options (VERIFIED)
+    params = {'OUTLON0': -90}
+    FPRun.write_OUTGRID(params)
+    FPRun.print_OUTGRID()
 
 if __name__ == '__main__':
     print('Ready to go!\n')
-    # testing()
-    main()
