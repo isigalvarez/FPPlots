@@ -50,8 +50,9 @@ class FlexpartRun:
         self.commandPath = os.path.abspath(self.optionsPath+'/COMMAND')
         self.releasesPath = os.path.abspath(self.optionsPath+'/RELEASES')
         self.outgridPath = os.path.abspath(self.optionsPath+'/OUTGRID')
-        # FLEPART executable location
+        # FLEPART executable location and AVAILABLE path
         self.runFlexpart = os.path.abspath(self.flexpartPath+'/src/FLEXPART')
+        self.availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
         # == Prepare simulation directory tree == #
         self.prepareFiles()
 
@@ -83,9 +84,12 @@ class FlexpartRun:
             f.write(f'{self.optionsPath}/ \n')
             f.write(f'{self.outputPath}/ \n')
             f.write(f'{self.meteoPath}/ \n')
-            # Define the AVAILABLE path and write it
-            availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
-            f.write(f'{availablePath} \n')
+            f.write(f'{self.availablePath} \n')
+        # Make sure that the AVAILABLE file exists within meteoPath
+        if not os.path.isfile(self.availablePath):
+            print('\n (!) WARNING (!)')
+            print('Please copy the AVAILABLE file into the meteo directory:')
+            print(f' {self.meteoPath}/')
 
     def write_COMMAND(self, params={}):
         """
@@ -295,7 +299,7 @@ class FlexpartRun:
         to encompass the whole simulation.
         """
         # Open the AVAILABLE file
-        df = pd.read_csv(f'{self.meteoPath}/AVAILABLE', skiprows=3,
+        df = pd.read_csv(f'{self.availablePath}', skiprows=3,
                          sep='\s+', dtype='str', header=None,
                          usecols=[0, 1])
         # Create the date
@@ -326,6 +330,7 @@ class FlexpartRun:
             print(' Inconsistent dates. Check simulation parameters.')
             print(f'  Last meteo date: {lastDate_meteo}')
             print(f'  Last simulation date: {lastDate_command}')
+
 
 def testing():
     # Define parameters
@@ -381,7 +386,6 @@ def testing():
     print('\n# == Check meteo =====================================')
     FPRun.command
     FPRun.check_meteoRange()
-
 
 
 if __name__ == '__main__':
