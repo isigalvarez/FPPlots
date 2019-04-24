@@ -10,6 +10,17 @@ import pandas as pd
 
 sys.path.append(os.path.abspath("/home/isi/GitHub/FPPlots/"))
 
+# == Extracting dates from available ==================================
+meteoDir = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
+# Open the AVAILABLE file
+df = pd.read_csv(f'{meteoDir}/AVAILABLE', skiprows=3, dtype='str',
+                 header=None, sep='\s+', usecols=[0, 1])
+# Create the date
+date = pd.to_datetime(df[0]+df[1])
+# extract the limits
+firstDate = date.min()
+lastDate = date.max()
+# =====================================================================
 
 # == Generating a COMMNAD dict =======================================
 # Define parameters
