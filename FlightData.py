@@ -12,17 +12,6 @@ import pandas as pd
 import datetime as dt
 
 
-def testing():
-    """
-    This is a wrapper for several tests for FlighData class.
-    """
-    # Initialize an instace of the class and show the data
-    FD = FlightData(
-        '/home/isi/FLEXPART/CAFE_flightData/Flight13_ITCZ_2017-08-31.csv')
-    print(FD.data)
-    # Resample to 5 min
-
-
 class FlightData:
     """
     This is a class to handle fligt data. Needs a path to 
@@ -122,6 +111,21 @@ class FlightData:
         # return the command dict
         return command
 
+
+def testing():
+    """
+    This is a wrapper for several tests for FlighData class.
+    """
+    # Initialize an instace of the class and show the data (VERIFIED)
+    FD = FlightData(
+        '/home/isi/FLEXPART/CAFE_flightData/Flight13_ITCZ_2017-08-31.csv')
+    print(FD.data)
+    # Generate the RELEASES list (VERIFIED)
+    releases = FD.gen_RELEASES('10min')
+    print(releases)
+    # Generate the COMMAND dict (VERIFIED)
+    command = FD.gen_COMMAND()
+    print(command)
 
 def extract_BahamasData_1min():
     """
