@@ -260,7 +260,7 @@ class FlexpartRun:
         # Call write_RELEASES()
         self.write_RELEASES(params)
 
-    def print_totalparticles(self):
+    def check_totalParticles(self):
         """
         This method shows the total number of particles that will
         be released. This number should not exceed 100 000.
