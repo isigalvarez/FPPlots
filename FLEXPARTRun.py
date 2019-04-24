@@ -282,7 +282,7 @@ class FlexpartRun:
                    + 'release.'))
             print(('Please ignore this message if the maximum number of '
                    + 'particles (maxpart) was changed in the file '
-                   + '"par_mod.f90" before FLEXPART compilation.\n'))
+                   + '"par_mod.f90" before FLEXPART compilation.'))
             # Calculate an appropiate number and return it
             return int(floor(100000/len(self.releases)))
         else:
