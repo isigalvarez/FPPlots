@@ -277,13 +277,13 @@ class FlexpartRun:
         # Check the number
         if n_particles >= 100000:
             print(f'\n (!) WARNING (!)')
-            print((' The number of particles exceeds the maximum allowed '
-                   + ' by defect (100000). Consider reducing the number '
-                   + ' of releases or the number of particles for each '
-                   + ' release.'))
-            print((' Please ignore this message if the maximum number of '
-                   + ' particles (maxpart) was changed in the file '
-                   + ' "par_mod.f90" before FLEXPART compilation.'))
+            print(('The number of particles exceeds the maximum allowed '
+                   + 'by defect (100000). Consider reducing the number '
+                   + 'of releases or the number of particles for each '
+                   + 'release.'))
+            print(('Please ignore this message if the maximum number of '
+                   + 'particles (maxpart) was changed in the file '
+                   + '"par_mod.f90" before FLEXPART compilation.'))
             # Calculate an appropiate number and return it
             return int(floor(100000/len(self.releases)))
         else:
