@@ -37,7 +37,7 @@ FP = FlexpartRun((runDir, flexpartDir, meteoDir))
 FP.write_COMMAND(command)
 FP.write_RELEASES(releases)
 # Check the particles if needed
-n_particles = FP.print_totalparticles()
+n_particles = FP.check_totalParticles()
 if n_particles:
     FP.change_particlesNumber(n_particles)
 # Prepare OUTGRID
