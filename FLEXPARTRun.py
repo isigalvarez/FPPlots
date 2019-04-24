@@ -3,7 +3,7 @@
 # Created on 22/04/2019
 # This script defines a class to handle FLEXPART runs.
 #
-# The script needs to install the f90nml package to write 
+# The script needs to install the f90nml package to write
 # fortran namelists, see:
 # https://github.com/marshallward/f90nml
 # ===========================================================
@@ -13,6 +13,7 @@ import shutil
 import errno
 import subprocess
 import f90nml
+
 
 class FlexpartRun:
     """
@@ -94,7 +95,7 @@ class FlexpartRun:
                         'IBDATE': 20170829, 'IBTIME': 000000,
                         'IEDATE': 20170831, 'IETIME': 230000,
                         'LOUTSTEP': 300, 'LOUTAVER': 300,
-                        'LOUTSAMPLE': 100, 'ITSPLIT': 99999999, 
+                        'LOUTSAMPLE': 100, 'ITSPLIT': 99999999,
                         'LSYNCTIME': 100, 'CTL': -5.00000000,
                         'IFINE': 4, 'IOUT': 13, 'IPOUT': 1,
                         'LSUBGRID': 0, 'LCONVECTION': 1, 'LAGESPECTRA': 0,
@@ -107,14 +108,14 @@ class FlexpartRun:
         for key in params.keys():
             self.command[key] = params[key]
         # Create a copy of the existing COMMAND filename
-        shutil.copy(self.commandPath,self.commandPath+'.original')
+        shutil.copy(self.commandPath, self.commandPath+'.original')
         # Open a namelsit with f90nml
         nml = f90nml.read(self.commandPath+'.original')
         # Iterate over command and write the change
         for key in self.command.keys():
             nml['COMMAND'][key] = self.command[key]
         nml.write(self.commandPath+'_temp')
-        os.replace(self.commandPath+'_temp',self.commandPath)      
+        os.replace(self.commandPath+'_temp', self.commandPath)
 
     def print_COMMAND(self):
         """
@@ -206,15 +207,15 @@ class FlexpartRun:
         for key in params.keys():
             self.outgrid[key] = params[key]
         # Create a copy of the existing OUTGRID filename
-        shutil.copy(self.outgridPath,self.outgridPath+'.original')
+        shutil.copy(self.outgridPath, self.outgridPath+'.original')
         # Open a namelsit with f90nml
         nml = f90nml.read(self.outgridPath+'.original')
         # Iterate over command and write the change
         for key in self.outgrid.keys():
             nml['OUTGRID'][key] = self.outgrid[key]
         nml.write(self.outgridPath+'_temp')
-        os.replace(self.outgridPath+'_temp',self.outgridPath)   
-            
+        os.replace(self.outgridPath+'_temp', self.outgridPath)
+
     def print_OUTGRID(self):
         """
         This method prints the current configuration written
@@ -239,12 +240,14 @@ class FlexpartRun:
         # Try to reate the link
         try:
             os.symlink(f'{self.flexpartPath}/src/FLEXPART',
-                        f'{self.dirPath}/FLEXPART')
+                       f'{self.dirPath}/FLEXPART')
             # Show message
-            print(f'\nSimulation hosted in: \n   {self.dirPath}\nis ready to go.\n')
+            print(
+                f'\nSimulation hosted in: \n   {self.dirPath}\nis ready to go.\n')
         except FileExistsError as e:
             print('\nFLEXPART link already exists. Check directory tree.\n')
-                
+
+
 def testing():
     # Define parameters
     flexpartPath = 'testData/flexpartdirectorySimulation/'
@@ -287,6 +290,7 @@ def testing():
     params = {'OUTLON0': -90}
     FPRun.write_OUTGRID(params)
     FPRun.print_OUTGRID()
+
 
 if __name__ == '__main__':
     print('Ready to go!\n')
