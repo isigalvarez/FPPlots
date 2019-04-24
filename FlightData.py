@@ -67,10 +67,10 @@ class FlightData:
             # Initialize the dict
             release = {}
             # Save the start and end date and hour
-            release['IDATE1'] = idx.strftime('%Y%m%d')
-            release['iTIME1'] = idx.strftime('%H%M%S')
-            release['IDATE2'] = idx.strftime('%Y%m%d')
-            release['iTIME2'] = idx.strftime('%H%M%S')
+            release['IDATE1'] = int(idx.strftime('%Y%m%d'))
+            release['ITIME1'] = int(idx.strftime('%H%M%S'))
+            release['IDATE2'] = int(idx.strftime('%Y%m%d'))
+            release['ITIME2'] = int(idx.strftime('%H%M%S'))
             # Save the release location
             release['LON1'] = row['long']
             release['LON2'] = row['long']
@@ -79,7 +79,7 @@ class FlightData:
             release['Z1'] = row['altit']
             release['Z2'] = row['altit']
             # Save a comment
-            release['COMMENT'] = f'Flight Position at: {idx.strftime("%Y-%m-%d %H:%M")}'
+            release['COMMENT'] = f'"Flight Position at: {idx.strftime("%Y-%m-%d %H:%M")}"'
             # Append to the list
             releases.append(release)
         # return the releases list of dicts
@@ -104,10 +104,10 @@ class FlightData:
         lastDate = (self.data.index[-1] +
                     pd.Timedelta(hours=time_after)).ceil('H')
         # Create the dict for COMMAND
-        command = {'IBDATE': firstDate.strftime('%Y%m%d'),
-                   'IBTIME': firstDate.strftime('%H%M%S'),
-                   'IEDATE': lastDate.strftime('%Y%m%d'),
-                   'IETIME': lastDate.strftime('%H%M%S')}
+        command = {'IBDATE': int(firstDate.strftime('%Y%m%d')),
+                   'IBTIME': int(firstDate.strftime('%H%M%S')),
+                   'IEDATE': int(lastDate.strftime('%Y%m%d')),
+                   'IETIME': int(lastDate.strftime('%H%M%S'))}
         # return the command dict
         return command
 
