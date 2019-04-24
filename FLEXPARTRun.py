@@ -276,7 +276,7 @@ class FlexpartRun:
             n_particles += int(release['PARTS'])
         # Print the number and give a warning if needed
         print(f'\nTotal number of releases: {len(self.releases)}')
-        print(f'\nTotal number of particles released: {n_particles}')
+        print(f'Total number of particles released: {n_particles}')
         # Check the number
         if n_particles >= 100000:
             print(f'\n(!) WARNING (!)')
