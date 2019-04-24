@@ -280,7 +280,7 @@ class FlexpartRun:
         # Check the number
         if n_particles >= 100000:
             print(f'\n(!) WARNING (!)')
-            print(('The number of particles exceed the maximum allowed '
+            print(('The number of particles exceeds the maximum allowed '
                     + 'by defect (100000). Consider reducing the number '
                     + 'of releases or the number of particles for each '
                     + 'release.\n'))
