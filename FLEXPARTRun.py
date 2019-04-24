@@ -13,6 +13,7 @@ import shutil
 import errno
 import subprocess
 import f90nml
+import pandas as pd
 from numpy import floor
 
 
@@ -56,8 +57,8 @@ class FlexpartRun:
 
     def prepareFiles(self):
         """
-        This method creates the 'option', 'output' and the
-        rest of the files needed to host a Flexpart run.
+        Creates the 'option', 'output' and the rest of the files 
+        needed to host a Flexpart run.
         """
         # Create a new directory on dirPath
         if not os.path.exists(self.dirPath):
@@ -88,13 +89,12 @@ class FlexpartRun:
 
     def write_COMMAND(self, params={}):
         """
-        This method rewrites the COMMAND file to
-        configure the simulation
+        Rewrites the COMMAND file to configure the simulation.
         """
         # Define defaults
         self.command = {'LDIRECT': -1,
-                        'IBDATE': 20170829, 'IBTIME': 000000,
-                        'IEDATE': 20170831, 'IETIME': 230000,
+                        'IBDATE': 20170829, 'IBTIME': 100000,
+                        'IEDATE': 20170831, 'IETIME': 110000,
                         'LOUTSTEP': 300, 'LOUTAVER': 300,
                         'LOUTSAMPLE': 100, 'ITSPLIT': 99999999,
                         'LSYNCTIME': 100, 'CTL': -5.00000000,
@@ -120,8 +120,7 @@ class FlexpartRun:
 
     def print_COMMAND(self):
         """
-        This method prints the current configuration written
-        in the COMMAND file
+        Prints the current configuration written in the COMMAND file.
         """
         # Check if there is any parameters defined
         if len(self.command) == 0:
@@ -135,8 +134,7 @@ class FlexpartRun:
 
     def write_RELEASES(self, params=[{}]):
         """
-        This method rewrites the RELEASES file to
-        configure the simulation
+        Rewrites the RELEASES file to configure the simulation.
         """
         # Define defaults
         default_params = {'IDATE1': '20170831', 'ITIME1': '095900',
@@ -180,8 +178,7 @@ class FlexpartRun:
 
     def print_RELEASES(self):
         """
-        This method prints the current configuration written
-        in the RELEASE file
+        Prints the current configuration written in the RELEASE file.
         """
         # Check if there is any parameters defined
         if len(self.releases) == 0:
@@ -196,8 +193,7 @@ class FlexpartRun:
 
     def write_OUTGRID(self, params={}):
         """
-        This method rewrites the OUTGRID file to
-        configure the simulation
+        Rewrites the OUTGRID file to configure the simulation.
         """
         # Define defaults
         self.outgrid = {'OUTLON0': -80.0, 'OUTLAT0': -35.0,
@@ -219,8 +215,7 @@ class FlexpartRun:
 
     def print_OUTGRID(self):
         """
-        This method prints the current configuration written
-        in the OUTGRID file
+        Prints the current configuration written in the OUTGRID file.
         """
         # Check if there is any parameters defined
         if len(self.outgrid) == 0:
@@ -234,9 +229,8 @@ class FlexpartRun:
 
     def prepare_Run(self):
         """
-        This method creates a link to the FLEXPART executable in the
-        simulation directory, laying the grund to easily perform the
-        simulation.
+        Creates a link to the FLEXPART executable in the simulation 
+        directory, laying the grund to easily perform the simulation.
         """
         # Try to reate the link
         try:
@@ -250,19 +244,21 @@ class FlexpartRun:
 
     def change_particlesNumber(self, number=1000):
         """
-        This method allows to rewrite the RELEASES file to change
-        the number of particles for each release.
+        Rewrite the RELEASES file to change the number of particles 
+        for each release.
         """
-        # Take out the number of releases
-        n = len(self.releases)
-        # Define params
-        params = [{'PARTS': number}]*n
-        # Call write_RELEASES()
-        self.write_RELEASES(params)
+        # If a number is provided, go on
+        if number:
+            # Take out the number of releases
+            n = len(self.releases)
+            # Define params
+            params = [{'PARTS': number}]*n
+            # Call write_RELEASES()
+            self.write_RELEASES(params)
 
     def check_totalParticles(self):
         """
-        This method shows the total number of particles that will
+        Checks the total number of particles that will
         be released. This number should not exceed 100 000.
 
         This method returns 'None' if the number is ok or a suggested
@@ -281,64 +277,110 @@ class FlexpartRun:
         if n_particles >= 100000:
             print(f'\n(!) WARNING (!)')
             print(('The number of particles exceeds the maximum allowed '
-                    + 'by defect (100000). Consider reducing the number '
-                    + 'of releases or the number of particles for each '
-                    + 'release.'))
+                   + 'by defect (100000). Consider reducing the number '
+                   + 'of releases or the number of particles for each '
+                   + 'release.'))
             print(('Please ignore this message if the maximum number of '
-                    + 'particles (maxpart) was changed in the file '
-                    + '"par_mod.f90" before FLEXPART compilation.\n'))
+                   + 'particles (maxpart) was changed in the file '
+                   + '"par_mod.f90" before FLEXPART compilation.\n'))
             # Calculate an appropiate number and return it
             return int(floor(100000/len(self.releases)))
         else:
             return None
 
+    def check_meteoRange(self):
+        """
+        Checks that the meteorological files available will be enough
+        to encompass the whole simulation.
+        """
+        # Open the AVAILABLE file
+        df = pd.read_csv(f'{self.meteoPath}/AVAILABLE', skiprows=3,
+                         sep='\s+', dtype='str', header=None,
+                         usecols=[0, 1])
+        # Create the date
+        date_meteo = pd.to_datetime(df[0]+df[1])
+        # Extract the meteo limits
+        firstDate_meteo = date_meteo.min()
+        lastDate_meteo = date_meteo.max()
+        # Extract the date from the COMMAND parameters
+        date = f'{self.command["IBDATE"]}'.zfill(6)
+        hour = f'{self.command["IBTIME"]}'.zfill(6)
+        firstDate_command = pd.to_datetime(date+hour)
+        date = f'{self.command["IEDATE"]}'.zfill(6)
+        hour = f'{self.command["IETIME"]}'.zfill(6)
+        lastDate_command = pd.to_datetime(date+hour)
+        # Check initial dates
+        print('\nChecking initial dates...')
+        if firstDate_meteo < firstDate_command:
+            print(' Initial date is correct.')
+        else:
+            print(' Inconsistent dates. Check simulation parameters.')
+            print(f'  First meteo date: {firstDate_meteo}')
+            print(f'  First simulation date: {firstDate_command}')
+        # Check final dates
+        print('\nChecking final dates...')
+        if lastDate_meteo > lastDate_command:
+            print(' Final date is correct.')
+        else:
+            print(' Inconsistent dates. Check simulation parameters.')
+            print(f'  Last meteo date: {lastDate_meteo}')
+            print(f'  Last simulation date: {lastDate_command}')
 
 def testing():
     # Define parameters
-    runDir='/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_01/'
-    flexpartDir='/home/isi/FLEXPART/flexpart10_git/'
-    meteoDir='/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
-    paths=(runDir, flexpartDir, meteoDir)
+    runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/FPRun_01/'
+    flexpartDir = '/home/isi/FLEXPART/flexpart10_git/'
+    meteoDir = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
+    paths = (runDir, flexpartDir, meteoDir)
     # ==  Create and prepare an instance of the class =====
     # Create the class (VERIFIED)
-    FPRun=FlexpartRun(paths)
+    FPRun = FlexpartRun(paths)
     # == Prepare the COMMAND file =========================
+    print('\n# == Prepare the COMMAND file =========================')
     # Try to print the COMMAND parameters (VERIFIED)
     FPRun.print_COMMAND()
     # Write the COMMAND with default options (VERIFIED)
     FPRun.write_COMMAND()
     FPRun.print_COMMAND()
     # Write the COMMAND with different options (VERIFIED)
-    params={'LDIRECT': 1}
+    params = {'LDIRECT': 1}
     FPRun.write_COMMAND(params)
     FPRun.print_COMMAND()
     # == Prepare the RELEASES file =========================
+    print('\n# == Prepare the RELEASES file =========================')
     # Try to print the RELEASES parameters (VERIFIED)
     FPRun.print_RELEASES()
     # Write the RELEASES with default options (VERIFIED)
     FPRun.write_RELEASES()
     FPRun.print_RELEASES()
     # Write the RELEASES with different options (VERIFIED)
-    params=[{'IDATE1': 20170831, 'ITIME1': 90000,
+    params = [{'IDATE1': 20170831, 'ITIME1': 90000,
                'IDATE2': 20170831, 'ITIME2': 100000},
               {'IDATE1': 20170831, 'ITIME1': 110000,
                'IDATE2': 20170831, 'ITIME2': 120000}]
     FPRun.write_RELEASES(params)
     FPRun.print_RELEASES()
     # == Prepare the OUTGRID file =========================
+    print('\n# == Prepare the OUTGRID file =========================')
     # Try to print the OUTGRID parameters (VERIFIED)
     FPRun.print_OUTGRID()
     # Write the OUTGRID with default options (VERIFIED)
     FPRun.write_OUTGRID()
     FPRun.print_OUTGRID()
     # Write the OUTGRID with different options (VERIFIED)
-    params={'OUTLON0': -90}
+    params = {'OUTLON0': -90}
     FPRun.write_OUTGRID(params)
     FPRun.print_OUTGRID()
-    # == Change the number of particles ===================
-    number=850
-    FPRun.change_particlesNumber(number)
+    # == Check the number of particles ===================
+    print('\n# == Check the number of particles ===================')
+    n_particles = FPRun.check_totalParticles()
+    FPRun.change_particlesNumber(n_particles)
     FPRun.print_RELEASES()
+    # == Check meteo =====================================
+    print('\n# == Check meteo =====================================')
+    FPRun.command
+    FPRun.check_meteoRange()
+
 
 
 if __name__ == '__main__':
