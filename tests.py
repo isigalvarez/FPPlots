@@ -41,10 +41,10 @@ for idx, row in df_5min.iterrows():
     # Initialize the dict
     release = {}
     # Save the start and end date and hour
-    release['IDATE1'] = idx.strftime('%Y%m%d')
-    release['iTIME1'] = idx.strftime('%H%M%S')
-    release['IDATE2'] = idx.strftime('%Y%m%d')
-    release['iTIME2'] = idx.strftime('%H%M%S')
+    release['IDATE1'] = int(idx.strftime('%Y%m%d'))
+    release['iTIME1'] = int(idx.strftime('%H%M%S'))
+    release['IDATE2'] = int(idx.strftime('%Y%m%d'))
+    release['iTIME2'] = int(idx.strftime('%H%M%S'))
     # Save the release location
     release['LON1'] = row['long']
     release['LON2'] = row['long']
@@ -53,7 +53,7 @@ for idx, row in df_5min.iterrows():
     release['Z1'] = row['altit']
     release['Z2'] = row['altit']
     # Save a comment
-    release['COMMENT'] = f'Flight Position at: {idx.strftime("%Y-%m-%d %H:%M")}'
+    release['COMMENT'] = f'"Flight Position at: {idx.strftime("%Y-%m-%d %H:%M")}"'
     # Append to the list
     releases.append(release)
 # =====================================================================
