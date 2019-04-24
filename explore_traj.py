@@ -12,9 +12,9 @@
 # This variables and its names are, in order:
 # j             Release point
 # t             Time elapsed (s) since the middle of the release
-# xcenter       Longitude of the release plume
-# ycenter       Latitude of the release plume
-# zcenter       Height of the release plume
+# xcenter       Longitude of the release plume (RPC)
+# ycenter       Latitude of the release plume (RPC)
+# zcenter       Height of the release plume (RPC)
 # topocenter    Mean topography underlying all particles
 # hmixcenter    Mean mixing height for all particles
 # tropocenter   Mean tropopause height at the positions of particles
