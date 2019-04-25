@@ -270,8 +270,8 @@ class FlexpartRun:
         Checks the total number of particles that will
         be released. This number should not exceed 100 000.
 
-        This method returns 'None' if the number is ok or a suggested
-        number if there are too many particles
+        Returns a suggested number if there are too many 
+        particles. Otherwise, returns 'None'.
         """
         # Initialize the number
         n_particles = 0
