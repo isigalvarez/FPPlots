@@ -41,7 +41,7 @@ def main():
                                              runsDir+flightID,
                                              flexpartDir, meteoDir)
     # ===========================================================
-
+    return results
 
 def prepareSingleRun(flightPath, runDir, flexpartDir, meteoDir):
     """
@@ -77,4 +77,4 @@ def prepareSingleRun(flightPath, runDir, flexpartDir, meteoDir):
 
 if __name__ == '__main__':
     print("\nLet's go!")
-    main()
+    results = main()
