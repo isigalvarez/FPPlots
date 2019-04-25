@@ -54,9 +54,9 @@ class FlexpartRun:
         self.runFlexpart = os.path.abspath(self.flexpartPath+'/src/FLEXPART')
         self.availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
         # == Prepare simulation directory tree == #
-        self.prepareFiles()
+        self.prepare_Files()
 
-    def prepareFiles(self):
+    def prepare_Files(self):
         """
         Creates the 'option', 'output' and the rest of the files 
         needed to host a Flexpart run.
@@ -114,8 +114,6 @@ class FlexpartRun:
         # Redefined the given params
         for key in params.keys():
             self.command[key] = params[key]
-        # Create a copy of the existing COMMAND filename
-        shutil.copy(self.commandPath, self.commandPath+'.original')
         # Open a namelsit with f90nml
         nml = f90nml.read(self.commandPath+'.original')
         # Iterate over command and write the change
@@ -164,9 +162,6 @@ class FlexpartRun:
             releases.append(release)
         # Save a copy to the internal value
         self.releases = releases[:]
-        # Change the existing COMMAND filename
-        os.replace(self.optionsPath+'/RELEASES',
-                   self.optionsPath+'/RELEASES.original')
         # Open the new COMMAND file
         with open(self.optionsPath+'/RELEASES', 'w+', newline='\n') as f:
             # Write the lines of &RELEASES_CTRL
@@ -211,8 +206,6 @@ class FlexpartRun:
         # Redefined the given params
         for key in params.keys():
             self.outgrid[key] = params[key]
-        # Create a copy of the existing OUTGRID filename
-        shutil.copy(self.outgridPath, self.outgridPath+'.original')
         # Open a namelsit with f90nml
         nml = f90nml.read(self.outgridPath+'.original')
         # Iterate over command and write the change
@@ -264,6 +257,21 @@ class FlexpartRun:
                 release['PARTS'] = number
             # Reassing
             self.write_RELEASES(releases)
+
+    def changeParams_RELEASES(self,params={}):
+        """
+        Rewrite the RELEASES file to change parameters
+        across all releases.
+        """
+        # Extract current releases state
+        releases = self.releases[:]
+        # Iterate over releases
+        for release in releases:
+            # Iterate over params
+            for key in params.keys():
+                release[key] = params[key]
+        # Reassing
+        self.write_RELEASES(releases)
 
     def check_totalParticles(self,maxpart=100000):
         """
