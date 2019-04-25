@@ -38,7 +38,10 @@ FP.releases
 FP.write_OUTGRID()
 # Check the particles
 FP.change_particlesNumber(FP.check_totalParticles())
-FP.check_totalParticles()
+# Changing something about RELEASES
+params = {'PARTS':1000,'IDATE1':20202020}
+FP.changeParams_RELEASES(params)
+FP.releases
 # Check meteo encapsulation
 FP.check_meteoRange()
 # Copy the FLEXPART executable
