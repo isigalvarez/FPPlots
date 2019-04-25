@@ -150,8 +150,6 @@ class FlexpartRun:
                           'Z1': '833.51', 'Z2': '833.52',
                           'ZKIND': '1', 'MASS': '100000000.0',
                           'PARTS': '10000', 'COMMENT': '"RELEASE 1"'}
-        # Initialize the list of releases
-        self.releases = []
         # Iterate over params changing what's asked
         for param in params:
             # Create a copy of default options
@@ -166,7 +164,7 @@ class FlexpartRun:
         os.replace(self.optionsPath+'/RELEASES',
                    self.optionsPath+'/RELEASES.original')
         # Open the new COMMAND file
-        with open(self.optionsPath+'/RELEASES', 'w+', newline='') as f:
+        with open(self.optionsPath+'/RELEASES', 'w+', newline='\n') as f:
             # Write the lines of &RELEASES_CTRL
             f.write('&RELEASES_CTRL \n')
             f.write(f' NSPEC =1, \n')
@@ -262,7 +260,7 @@ class FlexpartRun:
             # Call write_RELEASES()
             self.write_RELEASES(params)
 
-    def check_totalParticles(self):
+    def check_totalParticles(self,maxpart=100000):
         """
         Checks the total number of particles that will
         be released. This number should not exceed 100 000.
@@ -282,17 +280,17 @@ class FlexpartRun:
         print(f' Average particles per release: {n_particles/len(self.releases)}')
         print(f' Total number of particles released: {n_particles}')
         # Check the number
-        if n_particles >= 100000:
+        if n_particles >= maxpart:
             print(f'\n (!) WARNING (!)')
             print(('The number of particles exceeds the maximum allowed '
-                   + 'by defect (100000). Consider reducing the number '
+                   + f'({maxpart}). Consider reducing the number '
                    + 'of releases or the number of particles for each '
                    + 'release.'))
             print(('Please ignore this message if the maximum number of '
                    + 'particles (maxpart) was changed in the file '
                    + '"par_mod.f90" before FLEXPART compilation.'))
             # Calculate an appropiate number and return it
-            return int(floor(100000/len(self.releases)))
+            return int(floor(maxpart/len(self.releases)))
         else:
             return None
 
