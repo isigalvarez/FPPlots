@@ -61,6 +61,8 @@ class FlexpartRun:
         Creates the 'option', 'output' and the rest of the files 
         needed to host a Flexpart run.
         """
+        # Show a message
+        print('\nPreparing FLEXPART environment...')
         # Create a new directory on dirPath
         if not os.path.exists(self.dirPath):
             os.makedirs(self.dirPath)
@@ -151,7 +153,7 @@ class FlexpartRun:
         # Initialize the list of releases
         self.releases = []
         # Iterate over params changing what's asked
-        for i, param in enumerate(params):
+        for param in params:
             # Create a copy of default options
             release = default_params.copy()
             # Iterate over paramaters to be changed
@@ -242,9 +244,9 @@ class FlexpartRun:
                        f'{self.dirPath}/FLEXPART')
             # Show message
             print(
-                f'\nSimulation hosted in: \n   {self.dirPath}\nis ready to go.\n')
-        except FileExistsError as e:
-            print('\nFLEXPART link already exists. Check directory tree.\n')
+                f'\nSimulation hosted in: \n   {self.dirPath}\nis ready to go.')
+        except FileExistsError:
+            print('\nFLEXPART link already exists. Check directory tree.')
 
     def change_particlesNumber(self, number=1000):
         """
@@ -277,6 +279,7 @@ class FlexpartRun:
         # Print the number and give a warning if needed
         print('\nChecking releases...')
         print(f' Total number of releases: {len(self.releases)}')
+        print(f' Average particles per release: {n_particles/len(self.releases)}')
         print(f' Total number of particles released: {n_particles}')
         # Check the number
         if n_particles >= 100000:
