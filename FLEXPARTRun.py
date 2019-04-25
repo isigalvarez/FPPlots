@@ -243,21 +243,6 @@ class FlexpartRun:
         except FileExistsError:
             print('\nFLEXPART link already exists. Check directory tree.')
 
-    def change_particlesNumber(self, number=1000):
-        """
-        Rewrite the RELEASES file to change the number of particles 
-        for each release.
-        """
-        # If a number is provided, go on
-        if number:
-            # Extract previous release parameters
-            releases = self.releases[:]
-            # Redefine PARTS
-            for release in releases:
-                release['PARTS'] = number
-            # Reassing
-            self.write_RELEASES(releases)
-
     def changeParams_RELEASES(self,params={}):
         """
         Rewrite the RELEASES file to change parameters
@@ -272,6 +257,22 @@ class FlexpartRun:
                 release[key] = params[key]
         # Reassing
         self.write_RELEASES(releases)
+
+    def change_particlesNumber(self, number=1000):
+        """
+        Rewrite the RELEASES file to change the number of particles 
+        for each release.
+        """
+        # If a number is provided, go on
+        if number:
+            # Extract previous release parameters
+            releases = self.releases[:]
+            # Redefine PARTS
+            for release in releases:
+                release['PARTS'] = number
+            # Reassing
+            self.write_RELEASES(releases)
+            print('\nChanged the number of particles to {number}.')
 
     def check_totalParticles(self,maxpart=100000):
         """
