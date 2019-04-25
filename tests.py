@@ -1,5 +1,6 @@
 
 from FLEXPARTRun import FlexpartRun
+from FlightData import FlightData
 import os
 import sys
 import shutil
@@ -9,6 +10,40 @@ import f90nml
 import pandas as pd
 
 sys.path.append(os.path.abspath("/home/isi/GitHub/FPPlots/"))
+
+# == Preparing a flexpart environment =================================
+# Parameters
+# Directory where flighst are stored
+flightPath = '../../FLEXPART/CAFE_flightData/Flight15_ITCZ2_2017-09-04.csv'
+# Directory where runfiles will be created
+runDir = '../../FLEXPART/flexpart10_git/Runs/CAFE/Test/'
+# Paths to FLEXPART and meteo dirs
+flexpartDir = '../../FLEXPART/flexpart10_git/'
+meteoDir = '../../FLEXPART/Meteo/ECMWF/20170829_EA/'
+# Initialize the flight
+FD = FlightData(flightPath)
+# Extract releases and command
+releases = FD.gen_RELEASES('5min')
+command = FD.gen_COMMAND()
+
+# Initialize the FLEXPART class
+FP = FlexpartRun((runDir, flexpartDir, meteoDir))
+# Prepare the COMMAND, RELEASES and OUTGRID files
+FP.write_COMMAND(command)
+FP.print_RELEASES()
+FP.releases
+FP.write_RELEASES(releases)
+FP.print_RELEASES()
+FP.releases
+FP.write_OUTGRID()
+# Check the particles
+FP.change_particlesNumber(FP.check_totalParticles())
+FP.check_totalParticles()
+# Check meteo encapsulation
+FP.check_meteoRange()
+# Copy the FLEXPART executable
+FP.prepare_Run()
+# =====================================================================
 
 # == Extracting dates from available ==================================
 meteoDir = '/home/isi/FLEXPART/Meteo/ECMWF/20170829_EA'
