@@ -150,6 +150,8 @@ class FlexpartRun:
                           'Z1': '833.51', 'Z2': '833.52',
                           'ZKIND': '1', 'MASS': '100000000.0',
                           'PARTS': '10000', 'COMMENT': '"RELEASE 1"'}
+        # Initialize releases
+        releases = []
         # Iterate over params changing what's asked
         for param in params:
             # Create a copy of default options
@@ -158,8 +160,10 @@ class FlexpartRun:
             for key in param.keys():
                 # Change the value
                 release[key] = param[key]
-            # Append the release to internal value
-            self.releases.append(release)
+            # Append the release
+            releases.append(release)
+        # Save a copy to the internal value
+        self.releases = releases[:]
         # Change the existing COMMAND filename
         os.replace(self.optionsPath+'/RELEASES',
                    self.optionsPath+'/RELEASES.original')
@@ -253,12 +257,13 @@ class FlexpartRun:
         """
         # If a number is provided, go on
         if number:
-            # Take out the number of releases
-            n = len(self.releases)
-            # Define params
-            params = [{'PARTS': number}]*n
-            # Call write_RELEASES()
-            self.write_RELEASES(params)
+            # Extract previous release parameters
+            releases = self.releases[:]
+            # Redefine PARTS
+            for release in releases:
+                release['PARTS'] = number
+            # Reassing
+            self.write_RELEASES(releases)
 
     def check_totalParticles(self,maxpart=100000):
         """
