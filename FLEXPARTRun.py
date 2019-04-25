@@ -272,7 +272,7 @@ class FlexpartRun:
                 release['PARTS'] = number
             # Reassing
             self.write_RELEASES(releases)
-            print('\nChanged the number of particles to {number}.')
+            print(f'\nChanged the number of particles to {number}.')
 
     def check_totalParticles(self,maxpart=100000):
         """
