@@ -52,7 +52,8 @@ class FlexpartRun:
         self.outgridPath = os.path.abspath(self.optionsPath+'/OUTGRID')
         # FLEPART executable location and AVAILABLE path
         self.runFlexpart = os.path.abspath(self.flexpartPath+'/src/FLEXPART')
-        self.availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
+        self.availablePath = os.path.abspath(self.flexpartPath+'/AVAILABLE')
+        #self.availablePath = os.path.abspath(f'{self.meteoPath}/AVAILABLE')
         # == Prepare simulation directory tree == #
         self.prepare_Files()
 
@@ -87,11 +88,11 @@ class FlexpartRun:
             f.write(f'{self.outputPath}/ \n')
             f.write(f'{self.meteoPath}/ \n')
             f.write(f'{self.availablePath} \n')
-        # Make sure that the AVAILABLE file exists within meteoPath
-        if not os.path.isfile(self.availablePath):
-            print('\n (!) WARNING (!)')
-            print('Please copy the AVAILABLE file into the meteo directory:')
-            print(f' {self.meteoPath}/')
+        # # Make sure that the AVAILABLE file exists within meteoPath
+        # if not os.path.isfile(self.availablePath):
+        #     print('\n (!) WARNING (!)')
+        #     print('Please copy the AVAILABLE file into the meteo directory:')
+        #     print(f' {self.meteoPath}/')
 
     def write_COMMAND(self, params={}):
         """
