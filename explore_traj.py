@@ -42,7 +42,33 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-# == Extract Data ===========================================
+
+def main():
+    """
+    Wrapper to test some functions.
+    """
+    # == Define parameters ==================================
+    # Path to some grid files
+    dataPath = 'testData/output_03_MassPlumeTrajectories_netCDF/'
+    # =======================================================
+
+    # == Find data files ====================================
+    # First we extract all the files inside output dir
+    files_all = os.listdir(dataPath)
+    # Take only files beginning with 'grid'
+    files = [f for f in files_all if f.startswith('traj') == True]
+    # Choose the file
+    filePath = dataPath + files[0]
+    # Extract data
+    df = extract_trajectories(filePath)
+    # =======================================================
+
+    # == Plot trajectories ==================================
+    # Extract latitude and longitude of the centroids
+    lon = df['xcenter'].values
+    lat = df['ycenter'].values
+    # Plot them
+    plotMap_trajectories(lat, lon, extent=[-60, 60, -40, 40])
 
 
 def extract_trajectories(filePath):
@@ -67,53 +93,43 @@ def extract_trajectories(filePath):
                      skiprows=5, header=None, names=names)
     # Return the data
     return df
-# ===========================================================
 
-# == Plot Data ==============================================
-def plotMap_contour(lat,lon,data,fsize=(12, 10)):
+
+def plotMap_trajectories(lat, lon, extent=None, fsize=(12, 10)):
     '''
     This function plots a simple map to take a quick look 
-    about some datapoints. 
+    about trajectories. 
     '''
     # Create figure and axes
     fig = plt.figure(figsize=fsize)
     ax = plt.axes(projection=ccrs.PlateCarree())
     # Find and stablish its limits
-    lon_max = np.ceil(lon.max())   
-    lon_min = np.floor(lon.min())
-    lat_max = np.ceil(lat.max())
-    lat_min = np.floor(lat.min())
-    ax.axis([lon_min, lon_max, lat_min, lat_max])
+    if extent:
+        ax.set_extent(extent)
+    else:
+        lon_max = np.ceil(lon.max())
+        lon_min = np.floor(lon.min())
+        lat_max = np.ceil(lat.max())
+        lat_min = np.floor(lat.min())
+        ax.set_extent([lon_min, lon_max, lat_min, lat_max])
     # Draw coastlines
     ax.coastlines('50m', linewidth=1, color='black')
     # Prepare the grid
-    gd = ax.gridlines(crs=ccrs.PlateCarree(),draw_labels=True,
-                        linewidth=1,linestyle='--',color='k',
-                        alpha=0.5)
+    gd = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                      linewidth=1, linestyle='--', color='k',
+                      alpha=0.5)
     gd.xlabels_top = False  # Take out upper labels
     gd.ylabels_right = False  # Take out right labels
     gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
     gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
-    # Plot the data and show it
-    ax.contour(lon,lat,data)
+    # Plot the first point as a dot
+    ax.plot(lon[0],lat[0],'o')
+    # Plot the trajectorys
+    ax.plot(lon, lat, color='red', linestyle='--')
     # return the figure just in case
-    return (fig,ax)
-# ===========================================================
+    return (fig, ax)
+
 
 if __name__ == '__main__':
-    # == Define parameters ==================================
-    # Path to some grid files
-    dataPath = 'testData/output_03_MassPlumeTrajectories_netCDF/'
-    # =======================================================
-
-    # == Find data files ====================================
-    # First we extract all the files inside output dir
-    files_all = os.listdir(dataPath)
-    # Take only files beginning with 'grid'
-    files = [f for f in files_all if f.startswith('traj') == True]
-    # Choose the file
-    filePath = dataPath + files[0]
-    # =======================================================
-
-    # == Extract data =======================================
-    df = extract_trajectories(filePath)
+    print('Ready to go!')
+    main()
