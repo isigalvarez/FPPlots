@@ -9,8 +9,8 @@
 # are 41 columns with detailed information about the clustered
 # trajectories and one row per timestep of the simulation
 #
-# This variables and its names are, in order:
-# j             Release point
+# These variables and its names are, in order:
+# j             Release number
 # t             Time elapsed (s) since the middle of the release
 # xcenter       Longitude of the release plume (RPC)
 # ycenter       Latitude of the release plume (RPC)
