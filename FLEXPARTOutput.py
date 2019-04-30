@@ -6,24 +6,54 @@
 # ===========================================================
 
 import os
+import csv
 import numpy as np
 import pandas as pd
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
+import matplotlib.cm as mpl_cm
+import iris.quickplot as qplt
 
 from netCDF4 import Dataset
 from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
+
 def main():
     # Define parameters
-    runDir = 'testData/output_03_MassPlumeTrajectories_netCDF/'
+    runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/CAFE/Flight13/'
     # Initiate the class
     FPOut = FLEXPARTOutput(runDir)
+    print(FPOut.trajDataMeta.head())
+    print(FPOut.trajData.head())
+    return FPOut
+
+    # # Other tests
+    # trajPath = '/home/isi/FLEXPART/flexpart10_git/Runs/CAFE/Flight13/output/trajectories.txt'
+    # dfChunks = pd.read_csv(trajPath, sep='\s+', engine='python',
+    #                        skiprows=3, nrows=116*2, header=None)
+    # df_locs = dfChunks.iloc[::2].reset_index(drop=True)
+    # df_commt = dfChunks.iloc[1::2].reset_index(drop=True)
+    # df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
+    #     lambda x: ' '.join(x), axis=1)
+    # df_commt['Date'] = df_commt.iloc[:, 3:5].apply(
+    #     lambda x: ' '.join(x), axis=1)
+    # df_commt['Date'] = pd.to_datetime(df_commt['Date'])
+    # df_commt.drop(np.arange(10), inplace=True, axis=1)
+    # df = pd.concat([df_locs, df_commt], axis=1)
+    # df.columns = ['t_start', 't_end', 'lon_left', 'lat_down', 'lon_right',
+    #               'lat_up', 'z_dowm', 'z_top', 'spec', 'n_particles',
+    #               'comment', 'release_date']
+
 
 class FLEXPARTOutput():
     """
     Handle output from a FLEXPART simulation.
+
+    (!) This code was developed to work with
+    bacwards simulations. Funny stuff may happen
+    when applied on forward output. Please check 
+    results carefully.
     """
 
     def __init__(self, runDir):
@@ -34,33 +64,46 @@ class FLEXPARTOutput():
         self.runDir = runDir
         self.outputDir = f'{runDir}output/'
         # Initialize variables
-        self.traj = pd.DataFrame()
-        self.plume = []
+        self.trajFile = ''
+        self.trajData = pd.DataFrame()
+        self.trajDataMeta = pd.DataFrame()
+        self.ncFile = ''
+        self.ncData = []
+        # Call load_files()
+        self.load_files()
+
+    def load_files(self):
+        """
+        Looks for data and loads it.
+        """
         # Check for trajectories file
-        print("Looking for trajectories file... ")
+        print("\nLooking for trajectories file... ")
         files_all = os.listdir(self.outputDir)
         files = [f for f in files_all if f.startswith('traj') == True]
         files.sort()
+        # If there is one file, save the information
         if len(files) == 1:
-            print(' File found.')
-            self.trajFile = files[0]
-        elif len(files) == 0:  
-            print(" No 'trajectories.txt' file found.")
+            self.trajFile = self.outputDir+files[0]
+            self.trajData, self.trajDataMeta = self.extract_trajectories()
+            print(f' {self.trajFile} found.')
+        # IF there is no file or more than one, say it.
+        elif len(files) == 0:
+            print(" No file found.")
         else:
-            print(' More than one trajectories file found. Check Output.')
+            print(' More than one file found. Check Output.')
         # Check for nc files
-        print("Looking for netCDF4 files... ")
+        print("Looking for netCDF4 file... ")
         files_all = os.listdir(self.outputDir)
         files = [f for f in files_all if f.endswith('.nc') == True]
         files.sort()
+        # If there is one file, save the information
         if len(files) == 1:
-            print(' File found.')
-            self.trajFile = files[0]
-        elif len(files) == 0:  
-            print(" No 'trajectories.txt' file found.")
+            self.ncFile = self.outputDir+files[0]
+            self.ncData = Dataset(self.ncFile)
+            print(f' {self.ncFile} found.')
+        # IF there is no file or more than one, say it.
         else:
-            print(' More than one trajectories file found. Check Output.')
-
+            print(" No file found.")
 
     def extract_trajectories(self):
         '''
@@ -95,6 +138,44 @@ class FLEXPARTOutput():
         fclust_k      Fraction of particles belonging k-th cluster
         rmsclust_k    Horizontal rms distance for k-th cluster
         '''
+        # == Prepare the extraction =============================
+        # Read the file to know metada number of rows
+        with open(self.trajFile, 'r') as f:
+            metaRows = 2*int(list(csv.reader(f))[2][0])
+
+        # == Extract the metadata ===============================
+        # Define headers
+        headers = ['t_start', 't_end', 'lon_left', 'lat_down', 'lon_right',
+                   'lat_up', 'z_dowm', 'z_top', 'spec', 'n_particles', 'j',
+                   'comment']
+        # Extract the metadata
+        dfRaw = pd.read_csv(self.trajFile, sep='\s+', engine='python',
+                            skiprows=3, nrows=metaRows, header=None)
+        # Take only the odd rows to extract data about releases
+        df_locs = dfRaw.iloc[0::2].reset_index(drop=True)
+        # Define the release number
+        df_locs['j'] = len(df_locs.index)-df_locs.index.values
+        # Take only the even rows to extract the comments
+        df_commt = dfRaw.iloc[1::2].reset_index(drop=True)
+        # Collapse all columns to make the comment
+        df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
+            lambda x: ' '.join(x), axis=1)
+        # Try to build a date from comment
+        try:
+            df_commt['Date'] = df_commt.iloc[:, 3:5].apply(
+                lambda x: ' '.join(x), axis=1)
+            df_commt['Date'] = pd.to_datetime(df_commt['Date'])
+            # Add an item to headers
+            headers.append('release_date')
+        except:
+            print(' Date could not be parsed from releases comments.')
+        # Drop unwanted columns and combine both dataframes
+        df_commt.drop(np.arange(10), inplace=True, axis=1)
+        df_meta = pd.concat([df_locs, df_commt], axis=1)
+        # Rename the columns
+        df_meta.columns = headers
+
+        # == Extract the data itself ============================
         # Define the variables names
         names = ['j', 't', 'xcenter', 'ycenter', 'zcenter', 'topocenter',
                  'hmixcenter', 'tropocenter', 'pvcenter', 'rmsdist',
@@ -109,10 +190,58 @@ class FLEXPARTOutput():
             names += [s+f'_{i+1}' for s in names_cluster]
         # Extract the data
         df = pd.read_csv(self.trajFile, engine='python', sep='\s+',
-                         skiprows=5, header=None, names=names)
-        # Return the data
-        return df
+                         skiprows=metaRows+3, header=None, names=names)
+        # Save the data
+        return df, df_meta
+
+    def extract_positions(self, df):
+        """
+        Converts the trajectories dataframe into a list with 
+        one item for each release. Each item consists of a tuple
+        of latitude and longitude.
+        """
+        # Load the data
+        df = self.trajData.copy()
+
+    def plotMap_trajectories(self, pos_list, extent=None, fsize=(12, 10)):
+        '''
+        This function plots a simple map to take a quick look 
+        about trajectories. 
+        '''
+        # Create figure and axes
+        fig = plt.figure(figsize=fsize)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        # Find and stablish its limits
+        if extent:
+            ax.set_extent(extent)
+        else:
+            lon_max = np.ceil(lon.max())
+            lon_min = np.floor(lon.min())
+            lat_max = np.ceil(lat.max())
+            lat_min = np.floor(lat.min())
+            ax.set_extent([lon_min, lon_max, lat_min, lat_max])
+        # Draw coastlines
+        ax.coastlines('50m', linewidth=1, color='black')
+        # Prepare the grid
+        gd = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                          linewidth=1, linestyle='--', color='k',
+                          alpha=0.5)
+        gd.xlabels_top = False  # Take out upper labels
+        gd.ylabels_right = False  # Take out right labels
+        gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
+        gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+        # Iterate over positions
+        for pos in pos_list:
+            # Extract latitude and longitude
+            lat, lon = pos
+            # Plot the first point as a dot
+            ax.plot(lon[0], lat[0], 'o')
+            # Plot the trajectorys
+            ax.plot(lon, lat, color='red', linestyle='--')
+            # return the figure just in case
+            return (fig, ax)
+
 
 if __name__ == '__main__':
     print('Ready to go!')
-    main()
+    FPOut = main()
