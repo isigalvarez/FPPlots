@@ -24,26 +24,14 @@ def main():
     runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/CAFE/Flight13/'
     # Initiate the class
     FPOut = FLEXPARTOutput(runDir)
-    print(FPOut.trajDataMeta.head())
-    print(FPOut.trajData.head())
-    return FPOut
+    # print(FPOut.trajDataMeta.head())
+    # print(FPOut.trajData.head())
+    # Make a plot
+    fig, ax = FPOut.plotMap_trajectories()
+    # Add plots with things
+    fig, ax = FPOut.plotMap_trajectories(releases=list(range(1, 50)))
 
-    # # Other tests
-    # trajPath = '/home/isi/FLEXPART/flexpart10_git/Runs/CAFE/Flight13/output/trajectories.txt'
-    # dfChunks = pd.read_csv(trajPath, sep='\s+', engine='python',
-    #                        skiprows=3, nrows=116*2, header=None)
-    # df_locs = dfChunks.iloc[::2].reset_index(drop=True)
-    # df_commt = dfChunks.iloc[1::2].reset_index(drop=True)
-    # df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
-    #     lambda x: ' '.join(x), axis=1)
-    # df_commt['Date'] = df_commt.iloc[:, 3:5].apply(
-    #     lambda x: ' '.join(x), axis=1)
-    # df_commt['Date'] = pd.to_datetime(df_commt['Date'])
-    # df_commt.drop(np.arange(10), inplace=True, axis=1)
-    # df = pd.concat([df_locs, df_commt], axis=1)
-    # df.columns = ['t_start', 't_end', 'lon_left', 'lat_down', 'lon_right',
-    #               'lat_up', 'z_dowm', 'z_top', 'spec', 'n_particles',
-    #               'comment', 'release_date']
+    return FPOut
 
 
 class FLEXPARTOutput():
@@ -244,6 +232,8 @@ class FLEXPARTOutput():
         # Specify the releases to plot
         if not releases:
             releases = df['j'].unique()
+        # Create a dataframe with only the relevant releases
+        dfTemp = df[df['j'].isin(releases)]
         # Create figure and axes
         fig = plt.figure(figsize=fsize)
         ax = plt.axes(projection=ccrs.PlateCarree())
@@ -251,10 +241,10 @@ class FLEXPARTOutput():
         if extent:
             ax.set_extent(extent)
         else:
-            lon_max = np.ceil(lon.max())
-            lon_min = np.floor(lon.min())
-            lat_max = np.ceil(lat.max())
-            lat_min = np.floor(lat.min())
+            lon_max = np.ceil(dfTemp['xcenter'].max())
+            lon_min = np.floor(dfTemp['xcenter'].min())
+            lat_max = np.ceil(dfTemp['ycenter'].max())
+            lat_min = np.floor(dfTemp['ycenter'].min())
             ax.set_extent([lon_min, lon_max, lat_min, lat_max])
         # Draw coastlines
         ax.coastlines('50m', linewidth=1, color='black')
@@ -267,15 +257,16 @@ class FLEXPARTOutput():
         gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
         gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
         # Iterate over positions
-        for pos in pos_list:
-            # Extract latitude and longitude
-            lat, lon = pos
+        for release in releases:
+            # Extract a dataframe for the current release
+            df_rls = dfTemp[dfTemp['j'] == release]
             # Plot the first point as a dot
-            ax.plot(lon[0], lat[0], 'o')
+            ax.plot(df_rls.iloc[0]['xcenter'], df_rls.iloc[0]['ycenter'], 'ko')
             # Plot the trajectorys
-            ax.plot(lon, lat, color='red', linestyle='--')
-            # return the figure just in case
-            return (fig, ax)
+            ax.plot(df_rls['xcenter'], df_rls['ycenter'],
+                    color='red', linestyle='--')
+        # return the figure just in case
+        return (fig, ax)
 
 
 if __name__ == '__main__':
