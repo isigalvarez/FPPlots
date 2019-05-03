@@ -33,7 +33,8 @@ def main():
     ax.set_title('First Half Plot')
     fig, ax = FPOut.plotMap_trajectories(releases=list(range(int(116/2), 117)))
     ax.set_title('Last Half Plot')
-
+    # Check releases range
+    dateRange = FPOut.get_releasesRange(show=True)
     return FPOut
 
 
@@ -228,6 +229,15 @@ class FLEXPARTOutput():
                              fsize=(12, 10)):
         '''
         Plots a simple map to take a quick look about trajectories. 
+
+        Input:
+        - df        Dataframe with trajectories data. If None will
+                    use the data extracted on initialization.
+        - releases  List of integers. References the releases numbers
+                    to plot
+        - extent    Limits of the map (lonMax,lonMin,latMax,latMin). If
+                    None will use the limits of the trajectories
+        - fsize     Size of the figure (height,width)
         '''
         # Extract inner data if None is provided
         if not df:
@@ -270,6 +280,33 @@ class FLEXPARTOutput():
                     color='red', linestyle='--')
         # return the figure just in case
         return (fig, ax)
+
+    def get_releasesRange(self, df=None, releases=None, show=False):
+        """
+        Prints information about the date range of the releases
+        """
+        # Extract inner data if None is provided
+        if not df:
+            df = self.trajData
+        # Specify the releases to plot
+        if not releases:
+            releases = df['j'].unique()
+        # If required print a message
+        if show:
+            print('Releases range:')
+        # Create a dataframe with only the relevant releases
+        dfTemp = df[df['j'].isin(releases)]
+        # Iterate over releases
+        dateRange = {}
+        for release in releases:
+            # Extract the current dateRange and save it
+            dateTemp = dfTemp[dfTemp['j'] == release]['Date']
+            dateRange[release] = (dateTemp.min().strftime('%Y/%m/%d %H:%M'),
+                                  dateTemp.max().strftime('%Y/%m/%d %H:%M'))
+            # If required print it
+            if show:
+                print(f' Release {release} temporal range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
+        return dateRange
 
 
 if __name__ == '__main__':
