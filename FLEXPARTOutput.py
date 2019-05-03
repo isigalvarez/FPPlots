@@ -283,7 +283,8 @@ class FLEXPARTOutput():
 
     def get_releasesRange(self, df=None, releases=None, show=False):
         """
-        Prints information about the date range of the releases
+        Retrieve information about the date range of the releases.
+        If 'show' is set to true it will print the information as well.
         """
         # Extract inner data if None is provided
         if not df:
@@ -301,12 +302,12 @@ class FLEXPARTOutput():
         for release in releases:
             # Extract the current dateRange and save it
             dateTemp = dfTemp[dfTemp['j'] == release]['Date']
-            dateRange[release] = (dateTemp.min(),dateTemp.max())
+            dateRange[release] = (dateTemp.min(), dateTemp.max())
             # If required print it
             if show:
-                print(f' Release {release} time range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
+                print(
+                    f' Release {release} time range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
         return dateRange
-
 
 
 if __name__ == '__main__':
