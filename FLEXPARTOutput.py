@@ -233,7 +233,8 @@ class FLEXPARTOutput():
         # Return the results
         return releases_pos
 
-    def plotMap_trajectories(self, df=None, releases=None, extent=None, fsize=(12, 10)):
+    def plotMap_trajectories(self, df=None, releases=None, extent=None,
+                             fsize=(12, 10)):
         '''
         Plots a simple map to take a quick look about trajectories. 
         '''
