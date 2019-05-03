@@ -215,11 +215,9 @@ class FLEXPARTOutput():
     def extract_positions(self, df):
         """
         Converts the trajectories dataframe into a dict with 
-        one item for each release. Each item consists of a tuple
-        of longitude, latitude and height.
+        one list for each release. Each list consists of three lists
+        containing date, longitude, latitude and height.
         """
-        # Load the data
-        df = self.trajData.copy()
         # Extract info about releases
         releases = df['j'].unique()
         # Iterate over each realease
@@ -235,10 +233,16 @@ class FLEXPARTOutput():
         # Return the results
         return releases_pos
 
-    def plotMap_trajectories(self, pos_list, extent=None, fsize=(12, 10)):
+    def plotMap_trajectories(self, df=None, releases=None, extent=None, fsize=(12, 10)):
         '''
         Plots a simple map to take a quick look about trajectories. 
         '''
+        # Extract inner data if None is provided
+        if not df:
+            df = self.trajData
+        # Specify the releases to plot
+        if not releases:
+            releases = df['j'].unique()
         # Create figure and axes
         fig = plt.figure(figsize=fsize)
         ax = plt.axes(projection=ccrs.PlateCarree())
