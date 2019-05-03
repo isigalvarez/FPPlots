@@ -107,7 +107,7 @@ class FLEXPARTOutput():
 
     def extract_trajectories(self):
         '''
-        This function extract the trajectories data from a txt file
+        Extract the trajectories data from a txt file
         and saves it to a pandas Dataframe.
 
         The file 'trajectories.txt' contains a short header with
@@ -139,9 +139,17 @@ class FLEXPARTOutput():
         rmsclust_k    Horizontal rms distance for k-th cluster
         '''
         # == Prepare the extraction =============================
-        # Read the file to know metada number of rows
+        # Read the file to know metada number of rows and end date
         with open(self.trajFile, 'r') as f:
-            metaRows = 2*int(list(csv.reader(f))[2][0])
+            # Extract the first three rows of the file
+            header = list(csv.reader(f))[:3]
+            # Extract the date and the hour of the end of simulation
+            endDate = header[0][0].split(' ')[0].zfill(8)
+            endHour = header[0][0].split(' ')[1].zfill(6)
+            # Combine them to make a date
+            endDate = pd.to_datetime(endDate+endHour)
+            # Extract the number of rows with trajectories metadata
+            metaRows = 2*int(header[2][0])
 
         # == Extract the metadata ===============================
         # Define headers
@@ -160,20 +168,13 @@ class FLEXPARTOutput():
         # Collapse all columns to make the comment
         df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
             lambda x: ' '.join(x), axis=1)
-        # Try to build a date from comment
-        try:
-            df_commt['Date'] = df_commt.iloc[:, 3:5].apply(
-                lambda x: ' '.join(x), axis=1)
-            df_commt['Date'] = pd.to_datetime(df_commt['Date'])
-            # Add an item to headers
-            headers.append('release_date')
-        except:
-            print(' Date could not be parsed from releases comments.')
         # Drop unwanted columns and combine both dataframes
         df_commt.drop(np.arange(10), inplace=True, axis=1)
         df_meta = pd.concat([df_locs, df_commt], axis=1)
         # Rename the columns
         df_meta.columns = headers
+        # Build the date
+        df_meta['Date'] = endDate + pd.to_timedelta(df_meta['t_start'].astype(int),'S')
 
         # == Extract the data itself ============================
         # Define the variables names
@@ -191,22 +192,50 @@ class FLEXPARTOutput():
         # Extract the data
         df = pd.read_csv(self.trajFile, engine='python', sep='\s+',
                          skiprows=metaRows+3, header=None, names=names)
-        # Save the data
+        # Extract releases number
+        releases = df['j'].unique()
+        # Iterate over each realease
+        df_list = []
+        for release in releases:
+            # Create a temporal dataframe for the current release
+            df_temp = df[df['j'] == release]
+            # Extract the release date for the current release
+            release_date = df_meta[df_meta['j']==release]['Date'].values
+            # Add the date to those releases
+            df_temp['Date'] = release_date+pd.to_timedelta(df_temp['t'].astype(int),'S').values
+            # Save the positions
+            df_list.append(df_temp)
+        # Concatenate the dataframes
+        df = pd.concat(df_list,ignore_index=True)
+        # return the data
         return df, df_meta
 
     def extract_positions(self, df):
         """
-        Converts the trajectories dataframe into a list with 
+        Converts the trajectories dataframe into a dict with 
         one item for each release. Each item consists of a tuple
-        of latitude and longitude.
+        of longitude, latitude and height.
         """
         # Load the data
         df = self.trajData.copy()
+        # Extract info about releases
+        releases = df['j'].unique()
+        # Iterate over each realease
+        releases_pos = {}
+        for release in releases:
+            # Create a dataframe with the release info
+            df_temp = df[df['j'] == release]
+            # Create a list of tuples (longitude, latitude, height)
+            pos_temp = [(row['xcenter'], row['ycenter'], row['zcenter'])
+                        for idx, row in df_temp.iterrows()]
+            # Save the positions
+            releases_pos[release] = pos_temp
+        # Return the results
+        return releases_pos
 
     def plotMap_trajectories(self, pos_list, extent=None, fsize=(12, 10)):
         '''
-        This function plots a simple map to take a quick look 
-        about trajectories. 
+        Plots a simple map to take a quick look about trajectories. 
         '''
         # Create figure and axes
         fig = plt.figure(figsize=fsize)

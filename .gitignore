@@ -17,3 +17,5 @@ __pycache__/FLEXPARTRun.cpython-36.pyc
 __pycache__/FLEXPARTRun.cpython-36.pyc
 .vscode/launch.json
 .gitignore
+*.pyc
+*pyo
