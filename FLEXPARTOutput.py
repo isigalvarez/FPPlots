@@ -27,8 +27,12 @@ def main():
     # print(FPOut.trajData.head())
     # Make a plot
     fig, ax = FPOut.plotMap_trajectories()
+    ax.set_title('Complete Plot')
     # Add plots with things
-    fig, ax = FPOut.plotMap_trajectories(releases=list(range(1, 50)))
+    fig, ax = FPOut.plotMap_trajectories(releases=list(range(1, int(116/2))))
+    ax.set_title('First Half Plot')
+    fig, ax = FPOut.plotMap_trajectories(releases=list(range(int(116/2), 117)))
+    ax.set_title('Last Half Plot')
 
     return FPOut
 
@@ -240,10 +244,10 @@ class FLEXPARTOutput():
         if extent:
             ax.set_extent(extent)
         else:
-            lon_max = np.ceil(dfTemp['xcenter'].max())
-            lon_min = np.floor(dfTemp['xcenter'].min())
-            lat_max = np.ceil(dfTemp['ycenter'].max())
-            lat_min = np.floor(dfTemp['ycenter'].min())
+            lon_max = np.ceil(dfTemp['xcenter'].max()+0.5)
+            lon_min = np.floor(dfTemp['xcenter'].min()-0.5)
+            lat_max = np.ceil(dfTemp['ycenter'].max()+0.5)
+            lat_min = np.floor(dfTemp['ycenter'].min()-0.5)
             ax.set_extent([lon_min, lon_max, lat_min, lat_max])
         # Draw coastlines
         ax.coastlines('50m', linewidth=1, color='black')
