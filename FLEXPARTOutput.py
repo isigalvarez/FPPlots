@@ -304,8 +304,9 @@ class FLEXPARTOutput():
             dateRange[release] = (dateTemp.min(),dateTemp.max())
             # If required print it
             if show:
-                print(f' Release {release} temporal range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
+                print(f' Release {release} time range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
         return dateRange
+
 
 
 if __name__ == '__main__':
