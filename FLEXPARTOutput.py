@@ -301,8 +301,7 @@ class FLEXPARTOutput():
         for release in releases:
             # Extract the current dateRange and save it
             dateTemp = dfTemp[dfTemp['j'] == release]['Date']
-            dateRange[release] = (dateTemp.min().strftime('%Y/%m/%d %H:%M'),
-                                  dateTemp.max().strftime('%Y/%m/%d %H:%M'))
+            dateRange[release] = (dateTemp.min(),dateTemp.max())
             # If required print it
             if show:
                 print(f' Release {release} temporal range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
