@@ -174,7 +174,8 @@ class FLEXPARTOutput():
         # Rename the columns
         df_meta.columns = headers
         # Build the date
-        df_meta['Date'] = endDate + pd.to_timedelta(df_meta['t_start'].astype(int),'S')
+        df_meta['Date'] = endDate + \
+            pd.to_timedelta(df_meta['t_start'].astype(int), 'S')
 
         # == Extract the data itself ============================
         # Define the variables names
@@ -200,13 +201,14 @@ class FLEXPARTOutput():
             # Create a temporal dataframe for the current release
             df_temp = df[df['j'] == release]
             # Extract the release date for the current release
-            release_date = df_meta[df_meta['j']==release]['Date'].values
+            release_date = df_meta[df_meta['j'] == release]['Date'].values
             # Add the date to those releases
-            df_temp['Date'] = release_date+pd.to_timedelta(df_temp['t'].astype(int),'S').values
+            df_temp['Date'] = release_date + \
+                pd.to_timedelta(df_temp['t'].astype(int), 'S').values
             # Save the positions
             df_list.append(df_temp)
         # Concatenate the dataframes
-        df = pd.concat(df_list,ignore_index=True)
+        df = pd.concat(df_list, ignore_index=True)
         # return the data
         return df, df_meta
 
