@@ -12,7 +12,6 @@ import pandas as pd
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import matplotlib.cm as mpl_cm
-import iris.quickplot as qplt
 
 from netCDF4 import Dataset
 from matplotlib.backends.backend_pdf import PdfPages
@@ -21,7 +20,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 def main():
     # Define parameters
-    runDir = '/home/isi/FLEXPART/flexpart10_git/Runs/CAFE/Flight13/'
+    runDir = 'testData/output_07_MultipleTrajectories/'
     # Initiate the class
     FPOut = FLEXPARTOutput(runDir)
     # print(FPOut.trajDataMeta.head())
