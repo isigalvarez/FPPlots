@@ -11,10 +11,6 @@ map_output05_height-1000.0.pdf
 map_output05_height-500.0.pdf
 map_output05_height-50000.0.pdf
 testData/trajectories_commented.txt
-__pycache__/FLEXPARTRun.cpython-36.pyc
-__pycache__/FlightData.cpython-36.pyc
-__pycache__/FLEXPARTRun.cpython-36.pyc
-__pycache__/FLEXPARTRun.cpython-36.pyc
 .vscode/launch.json
 .gitignore
 *.pyc
