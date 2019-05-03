@@ -15,3 +15,4 @@ testData/trajectories_commented.txt
 .gitignore
 *.pyc
 *pyo
+map.html

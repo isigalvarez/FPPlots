@@ -7,6 +7,7 @@
 
 import os
 import csv
+import folium
 import numpy as np
 import pandas as pd
 import cartopy.crs as ccrs
@@ -18,23 +19,26 @@ from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
-def main():
+def testing():
     # Define parameters
     runDir = 'testData/output_07_MultipleTrajectories/'
     # Initiate the class
     FPOut = FLEXPARTOutput(runDir)
     # print(FPOut.trajDataMeta.head())
     # print(FPOut.trajData.head())
-    # Make a plot
-    fig, ax = FPOut.plotMap_trajectories()
-    ax.set_title('Complete Plot')
-    # Add plots with things
-    fig, ax = FPOut.plotMap_trajectories(releases=list(range(1, int(116/2))))
-    ax.set_title('First Half Plot')
-    fig, ax = FPOut.plotMap_trajectories(releases=list(range(int(116/2), 117)))
-    ax.set_title('Last Half Plot')
+    # # Make a plot
+    # fig, ax = FPOut.plotMap_traj()
+    # ax.set_title('Complete Plot')
+    # # Add plots with things
+    # fig, ax = FPOut.plotMap_traj(releases=list(range(1, int(116/2))))
+    # ax.set_title('First Half Plot')
+    # fig, ax = FPOut.plotMap_traj(releases=list(range(int(116/2), 117)))
+    # ax.set_title('Last Half Plot')
     # Check releases range
     dateRange = FPOut.get_releasesRange(show=True)
+    # Plot folium map
+    m = FPOut.plotFoliumMap_traj(show=False)
+    m.save('map.html')
     return FPOut
 
 
@@ -225,8 +229,8 @@ class FLEXPARTOutput():
         # Return the results
         return releases_pos
 
-    def plotMap_trajectories(self, df=None, releases=None, extent=None,
-                             fsize=(12, 10)):
+    def plotMap_traj(self, df=None, releases=None, extent=None,
+                     fsize=(12, 10)):
         '''
         Plots a simple map to take a quick look about trajectories. 
 
@@ -269,7 +273,7 @@ class FLEXPARTOutput():
         gd.ylabels_right = False  # Take out right labels
         gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
         gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
-        # Iterate over positions
+        # Iterate over releases
         for release in releases:
             # Extract a dataframe for the current release
             df_rls = dfTemp[dfTemp['j'] == release]
@@ -309,7 +313,51 @@ class FLEXPARTOutput():
                     f' Release {release} time range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
         return dateRange
 
+    def plotFoliumMap_traj(self, df=None, releases=None):
+        '''
+        Plots a simple map to take a quick look about trajectories. 
+
+        Input:
+        - df        Dataframe with trajectories data. If None will
+                    use the data extracted on initialization.
+        - releases  List of integers. References the releases numbers
+                    to plot
+        '''
+        # Extract inner data if None is provided
+        if not df:
+            df = self.trajData
+        # Specify the releases to plot
+        if not releases:
+            releases = df['j'].unique()
+        # Create a dataframe with only the relevant releases
+        dfTemp = df[df['j'].isin(releases)]
+        # Create the map
+        m = folium.Map(location=[16.7219, -22.9488], tiles='Stamen Terrain',
+                       zoom_start=5)
+        # Add capacity to see lat/lon on click
+        m.add_child(folium.LatLngPopup())
+        # Iterate over releases
+        for release in releases:
+            # Extract a dataframe for the current release
+            df_rls = dfTemp[dfTemp['j'] == release]
+            # == Plot the first point as a dot ==================
+            # Create the position
+            pos = (df_rls.iloc[0]['ycenter'], df_rls.iloc[0]['xcenter'])
+            # Create an plane icon from 'fontawesome' ('fa') in black
+            icon = folium.Icon(icon='fas fa-plane', prefix='fa', color='black')
+            # Create a popup message
+            popup = f'Plane position at: {df_rls.iloc[0]["Date"]}'
+            # Add the marker to the map
+            folium.Marker(pos, popup, icon=icon).add_to(m)
+            # == Plot the line ==================================
+            # Recreate the positions as a tuple
+            pos = [(row['ycenter'], row['xcenter'])
+                   for idx, row in df_rls.iterrows()]
+            # Plot the line
+            folium.PolyLine(pos,color='red',weight=2.5,opacity=1).add_to(m)
+        # Return the result
+        return m
 
 if __name__ == '__main__':
     print('Ready to go!')
-    FPOut = main()
+    FPOut = testing()
