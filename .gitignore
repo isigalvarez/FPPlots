@@ -17,3 +17,4 @@ testData/trajectories_commented.txt
 *pyo
 *.html
 *.pdf
+testData/output_07_MultipleTrajectories/output/grid_time_20170831210000.nc
