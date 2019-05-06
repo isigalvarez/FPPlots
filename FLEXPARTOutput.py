@@ -10,11 +10,11 @@ import csv
 import folium
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import cartopy.crs as ccrs
-import matplotlib.cm as mpl_cm
 import matplotlib.pyplot as plt
 
-from netCDF4 import Dataset
+from netCDF4 import Dataset, chartostring
 from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
@@ -26,6 +26,7 @@ def testing():
     FPOut = FLEXPARTOutput(runDir)
     # print(FPOut.trajDataMeta.head())
     # print(FPOut.trajData.head())
+    # # == Simple plots ===========================================
     # # Make a plot
     # fig, ax = FPOut.plotMap_traj()
     # ax.set_title('Complete Plot')
@@ -34,17 +35,24 @@ def testing():
     # ax.set_title('First Half Plot')
     # fig, ax = FPOut.plotMap_traj(releases=list(range(int(116/2), 117)))
     # ax.set_title('Last Half Plot')
-    # Check releases range
-    dateRange = FPOut.get_releases_dateRange(show=True)
-    # Restrict the releases range
-    dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
-    dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
-    # Plot folium map
-    m = FPOut.plotFoliumMap_traj()
-    m.save('map_0.html')
-    m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
-    m.save('map_1.html')
-    return (FPOut, dateRange, m)
+    # # == Manage dates ===========================================
+    # # Check releases range
+    # dateRange = FPOut.get_releases_dateRange(show=True)
+    # print(dateRange)
+    # # Restrict the releases range
+    # dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
+    # dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
+    # print(dateRange)
+    # # == Folium maps ============================================
+    # # Plot folium map
+    # m = FPOut.plotFoliumMap_traj()
+    # m.save('map_0.html')
+    # m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
+    # m.save('map_1.html')
+    # == PDF maps =================================================
+    # Plot quicklook
+    FPOut.plotPdfMap_plume()
+    return FPOut
 
 
 class FLEXPARTOutput():
@@ -70,6 +78,7 @@ class FLEXPARTOutput():
         self.trajDataMeta = pd.DataFrame()
         self.ncFile = ''
         self.ncData = []
+        self.ncDataMeta = []
         # Call load_files()
         self.load_files()
 
@@ -101,6 +110,7 @@ class FLEXPARTOutput():
         if len(files) == 1:
             self.ncFile = self.outputDir+files[0]
             self.ncData = Dataset(self.ncFile)
+            self.ncDataMeta = self.extract_ncMeta()
             print(f' {self.ncFile} found.')
         # IF there is no file or more than one, say it.
         else:
@@ -218,6 +228,8 @@ class FLEXPARTOutput():
         Converts the trajectories dataframe into a dict with 
         one list for each release. Each list consists of three lists
         containing date, longitude, latitude and height.
+
+        (Not being used right now)
         """
         # Extract info about releases
         releases = df['j'].unique()
@@ -234,7 +246,7 @@ class FLEXPARTOutput():
         # Return the results
         return releases_pos
 
-    def plotMap_traj(self, df=None, releases=None, extent=None,
+    def plotMap_traj(self, releases=None, extent=None,
                      fsize=(12, 10)):
         '''
         Plots a simple map to take a quick look about trajectories. 
@@ -248,9 +260,8 @@ class FLEXPARTOutput():
                     None will use the limits of the trajectories
         - fsize     Size of the figure (height,width)
         '''
-        # Extract inner data if None is provided
-        if not df:
-            df = self.trajData
+        # Extract inner data
+        df = self.trajData.copy()
         # Specify the releases to plot
         if not releases:
             releases = df['j'].unique()
@@ -290,7 +301,7 @@ class FLEXPARTOutput():
         # return the figure just in case
         return (fig, ax)
 
-    def get_releases_dateRange(self, df=None, releases=None, show=False,
+    def get_releases_dateRange(self, releases=None, show=False,
                                dateLims=[None, None]):
         """
         Retrieve information about the date range of the releases. If 
@@ -307,9 +318,8 @@ class FLEXPARTOutput():
         with strings defining the start and end limits, respectively.
         Example: ['2017-08-28 12:00','2017-08-28 14:00']
         """
-        # Extract inner data if None is provided
-        if not df:
-            df = self.trajData
+        # Extract inner data
+        df = self.trajData.copy()
         # Specify the releases to plot
         if not releases:
             releases = df['j'].unique()
@@ -357,7 +367,7 @@ class FLEXPARTOutput():
         # Return the result
         return dateRangeCopy
 
-    def plotFoliumMap_traj(self, df=None, releases=None):
+    def plotFoliumMap_traj(self, releases=None):
         '''
         Plots a simple map to take a quick look about trajectories. 
 
@@ -367,9 +377,8 @@ class FLEXPARTOutput():
         - releases  List of integers. References the releases numbers
                     to plot
         '''
-        # Extract inner data if None is provided
-        if not df:
-            df = self.trajData
+        # Extract inner data
+        df = self.trajData.copy()
         # Specify the releases to plot
         if not releases:
             releases = df['j'].unique()
@@ -402,7 +411,129 @@ class FLEXPARTOutput():
         # Return the result
         return m
 
+    def extract_ncMeta(self):
+        '''
+        This function extract information about the tracer
+        releases from a netCDF4 file generated by FLEXPART.
+
+        It return a tuple containing the time, height, latitude,
+        longitude and release comment. 
+        '''
+        # Open the dataset
+        data = self.ncData
+        # Extract the variables
+        # (!) To see the keys use data.variables.keys()
+        time_nc = data.variables['time']
+        lon_nc = data.variables['longitude']
+        lat_nc = data.variables['latitude']
+        hgt_nc = data.variables['height']
+        rlsComment_nc = data.variables['RELCOM']
+        # <= Here is the place to add more variables to extract
+
+        # Data comes in a class called 'netCDF4._netCDF4.Variable',
+        # we just need an array.
+        time = time_nc[:]
+        lon = lon_nc[:]
+        lat = lat_nc[:]
+        hgt = hgt_nc[:]
+        rlsComment = rlsComment_nc[:]
+        # The releases have to be converted
+        rlsComment = chartostring(rlsComment)
+
+        # Now we need tro transforme time into dates
+        # Get start and end date
+        startDate = pd.to_datetime(data.ibdate+data.ibtime)
+        endDate = pd.to_datetime(data.iedate+data.ietime)
+        # (!) ASSUMING ITS A BACKWARDS SIMULATION
+        # 'time' gives the seconds passed since the end date
+        # so we add it to 'endDate'
+        date = endDate + pd.to_timedelta(time, 'S')
+
+        # Return
+        return [date, time, hgt, lat, lon, rlsComment]
+
+    def plotPdfMap_plume(self, releases=None, level=0, plume_max=15,
+                         dateLims=[None, None]):
+        """
+        Create a pdf with hourly plots about the plume output
+        from FLEXPART.
+
+        Input:
+        - level         Defines the height level to plot.
+                        By defect is the lowest 0.
+        - plume_max     Defines the maximum value for the 
+                        source-receptor sensitivity.
+                        50 By defect.
+        """
+        # Extract metaData
+        dates, time, hgt, lat, lon, releases = self.ncDataMeta
+        # ADD RELEASES RESTRICTION
+        # Define the date range (Assuming it's backwards)
+        if dateLims[0]:
+            dateLims[0] = pd.to_datetime(dateLims[0])
+        else:
+            dateLims[0] = pd.to_datetime(dates[-1])
+        if dateLims[1]:
+            dateLims[1] = pd.to_datetime(dateLims[1])
+        else:
+            dateLims[1] = pd.to_datetime(dates[0])
+        dateRange = pd.date_range(dateLims[0], end=dateLims[1], freq='H')
+        # Define the colorbar ticks
+        ticks = np.linspace(0, plume_max, num=11)
+        # Open a pdf
+        savePDF = f'quickMap_plume_{int(hgt[level])}m.pdf'
+        with PdfPages(self.outputDir+savePDF) as pdf:
+            # Iterate over date range
+            for date in dateRange:
+                # Get the index
+                idx = dates.get_loc(date, method='nearest')
+                # Extract the plume data
+                plume = self.ncData.variables['spec001_mr']
+                plume = plume[0, :, idx, level, :, :]
+                # We do not want distinction for each release, sum them
+                plume = np.sum(plume, axis=0)
+                # Create figure and axes
+                fig = plt.figure(figsize=(4, 3))
+                ax = plt.axes(projection=ccrs.PlateCarree())
+                # Find and stablish its limits
+                lon_max = np.ceil(lon.max())
+                lat_max = np.ceil(lat.max())
+                lon_min = np.floor(lon.min())
+                lat_min = np.floor(lat.min())
+                ax.axis([lon_min, lon_max, lat_min, lat_max])
+                # Draw coastlines
+                ax.coastlines('50m', linewidth=1, color='black')
+                # Prepare the grid
+                gd = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                                  linewidth=1, linestyle='--', color='k',
+                                  alpha=0.5)
+                gd.xlabels_top = False  # Take out upper labels
+                gd.ylabels_right = False  # Take out right labels
+                gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
+                gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+                gd.xlabel_style = {'size': 6}
+                gd.ylabel_style = {'size': 6}
+                # Plot the data
+                c = ax.contour(lon, lat, plume)
+                try:
+                    cb = fig.colorbar(c)
+                except:
+                    print(date)
+                # Set title
+                ax.set_title(f'{date.strftime("%Y/%m/%d %H:%M")}')
+                # Save to pdf
+                pdf.savefig()
+                # Close the existing figure
+                plt.close()
+                # plt.show()
+
 
 if __name__ == '__main__':
     print('Ready to go!')
-    output = testing()
+    FPOut = testing()
+    # # Define parameters
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
+    # # Run tests
+    # FPOut = FLEXPARTOutput(runDir)
+    # FPOut.plotPdfMap_plume(dateLims=dateLims)
