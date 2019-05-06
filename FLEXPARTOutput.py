@@ -11,8 +11,8 @@ import folium
 import numpy as np
 import pandas as pd
 import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
 import matplotlib.cm as mpl_cm
+import matplotlib.pyplot as plt
 
 from netCDF4 import Dataset
 from matplotlib.backends.backend_pdf import PdfPages
@@ -35,11 +35,16 @@ def testing():
     # fig, ax = FPOut.plotMap_traj(releases=list(range(int(116/2), 117)))
     # ax.set_title('Last Half Plot')
     # Check releases range
-    dateRange = FPOut.get_releasesRange(show=True)
+    dateRange = FPOut.get_releases_dateRange(show=True)
+    # Restrict the releases range
+    dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
+    dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
     # Plot folium map
-    m = FPOut.plotFoliumMap_traj(show=False)
-    m.save('map.html')
-    return FPOut
+    m = FPOut.plotFoliumMap_traj()
+    m.save('map_0.html')
+    m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
+    m.save('map_1.html')
+    return (FPOut, dateRange, m)
 
 
 class FLEXPARTOutput():
@@ -285,10 +290,22 @@ class FLEXPARTOutput():
         # return the figure just in case
         return (fig, ax)
 
-    def get_releasesRange(self, df=None, releases=None, show=False):
+    def get_releases_dateRange(self, df=None, releases=None, show=False,
+                               dateLims=[None, None]):
         """
-        Retrieve information about the date range of the releases.
-        If 'show' is set to true it will print the information as well.
+        Retrieve information about the date range of the releases. If 
+        'show' is set to true it will print the information as well.
+
+        The number of the releases to be used can be defined using the
+        variable 'releases'. It should be a list with the numbers 
+        identifying the releases.
+        Example: 4,5,6,7,111,112]
+
+        If date limits are provided, it will restrict the releases 
+        according to it, returning those releases which starting date
+        is contained within 'dateLims'. This variable is a 2-item list
+        with strings defining the start and end limits, respectively.
+        Example: ['2017-08-28 12:00','2017-08-28 14:00']
         """
         # Extract inner data if None is provided
         if not df:
@@ -296,9 +313,6 @@ class FLEXPARTOutput():
         # Specify the releases to plot
         if not releases:
             releases = df['j'].unique()
-        # If required print a message
-        if show:
-            print('Releases range:')
         # Create a dataframe with only the relevant releases
         dfTemp = df[df['j'].isin(releases)]
         # Iterate over releases
@@ -307,11 +321,41 @@ class FLEXPARTOutput():
             # Extract the current dateRange and save it
             dateTemp = dfTemp[dfTemp['j'] == release]['Date']
             dateRange[release] = (dateTemp.min(), dateTemp.max())
-            # If required print it
-            if show:
-                print(
-                    f' Release {release} time range: {dateTemp.min().strftime("%Y/%m/%d %H:%M")} to {dateTemp.max().strftime("%Y/%m/%d %H:%M")}')
+        # Restrict releases
+        dateRange = self.restrict_releases_dateRange(dateRange, dateLims)
+        # If required print a message
+        if show:
+            print('\nReleases range:')
+            for release in dateRange:
+                a = dateRange[release][0].strftime("%Y/%m/%d %H:%M")
+                z = dateRange[release][1].strftime("%Y/%m/%d %H:%M")
+                print(f' Release {release} time range: {a} to {z}')
+        # Return results
         return dateRange
+
+    def restrict_releases_dateRange(self, dateRange, dateLims):
+        """
+        Restrict the releases according to their starting dates
+        and provided limits.
+        """
+        # Transform dateLims to datetime if they exist
+        if dateLims[0]:
+            dateLims[0] = pd.to_datetime(dateLims[0])
+        if dateLims[1]:
+            dateLims[1] = pd.to_datetime(dateLims[1])
+        # Iterate over dateRange but modifying a copy
+        dateRangeCopy = dateRange.copy()
+        for release in dateRange:
+            if dateLims[0]:
+                # Pop out if release beginning <= startLimit
+                if dateRange[release][0] <= dateLims[0]:
+                    dateRangeCopy.pop(release, None)
+            if dateLims[1]:
+                # Pop out if release beginning <= endLimit
+                if dateRange[release][0] >= dateLims[1]:
+                    dateRangeCopy.pop(release, None)
+        # Return the result
+        return dateRangeCopy
 
     def plotFoliumMap_traj(self, df=None, releases=None):
         '''
@@ -354,10 +398,11 @@ class FLEXPARTOutput():
             pos = [(row['ycenter'], row['xcenter'])
                    for idx, row in df_rls.iterrows()]
             # Plot the line
-            folium.PolyLine(pos,color='red',weight=2.5,opacity=1).add_to(m)
+            folium.PolyLine(pos, color='red', weight=2.5, opacity=1).add_to(m)
         # Return the result
         return m
 
+
 if __name__ == '__main__':
     print('Ready to go!')
-    FPOut = testing()
+    output = testing()
