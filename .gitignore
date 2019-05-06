@@ -16,3 +16,4 @@ testData/trajectories_commented.txt
 *.pyc
 *pyo
 *.html
+*.pdf
