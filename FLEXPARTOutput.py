@@ -20,55 +20,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
-def testing():
-    # Define parameters
-    runDir = 'testData/output_07_MultipleTrajectories/'
-    # Initiate the class
-    FPOut = FLEXPARTOutput(runDir)
-    # print(FPOut.trajDataMeta.head())
-    # print(FPOut.trajData.head())
-
-    # # == Simple plots ===========================================
-    # # Make a plot
-    # fig, ax = FPOut.plotMap_traj()
-    # ax.set_title('Complete Plot')
-    # # Add plots with things
-    # fig, ax = FPOut.plotMap_traj(releases=list(range(1, int(116/2))))
-    # ax.set_title('First Half Plot')
-    # fig, ax = FPOut.plotMap_traj(releases=list(range(int(116/2), 117)))
-    # ax.set_title('Last Half Plot')
-
-    # # == Manage dates ===========================================
-    # # Check releases range
-    # dateRange = FPOut.get_releases_dateRange(show=True)
-    # print(dateRange)
-    # # Restrict the releases range
-    # dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
-    # dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
-    # print(dateRange)
-
-    # # == Folium maps ============================================
-    # # Plot folium map
-    # m = FPOut.plotFoliumMap_traj()
-    # m.save('map_0.html')
-    # m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
-    # m.save('map_1.html')
-
-    # == PDF maps =================================================
-    # # Plot quicklook with limits
-    # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
-    # FPOut.plotPdfMap_plume(saveName='map_2017-08-28-1200.pdf',dateLims=dateLims)
-    # # Plot quicklook without limits
-    # FPOut.plotPdfMap_plume(saveName='map_Full.pdf')
-    # Plot a pdf map with 5 minutes data of one hour
-    dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
-    freq = '5T'
-    extent = [-45, 30, -15, 45]
-    FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
-                           freq=freq, extent=extent)
-    return FPOut
-
-
 class FLEXPARTOutput():
     """
     Handle output from a FLEXPART simulation.
@@ -466,6 +417,98 @@ class FLEXPARTOutput():
         # Return
         return [date, time, hgt, lat, lon, rlsComment]
 
+    def plotMap_plume(self, date, level=0, releases=None, extent=None,
+                      plumeLims=(0, None)):
+        """
+        Plot a simple plume map from a FLEXPART simulation.
+
+        Input:
+        - date      Date to plot in format 'yyyy-mm-dd HH:MM'.
+        - level     Defines the height level to plot.
+                    By defect is the lowest: 0.
+        - extent    Define the map limits. Should be a list with
+                    format [lon_min, lon_max, lat_min, lat_max].
+                    By default it will use all points available.
+        - plumeLims Defines the limits values for the 
+                    source-receptor sensitivity colorbar
+        """
+        # == Prepare data =======================================
+        # Retrieve metaData
+        dates, time, hgt, lat, lon, releases = self.ncDataMeta
+        # Convert input date to datetime
+        date = pd.to_datetime(date)
+        # Get the requested date index
+        idx = dates.get_loc(date, method='nearest')
+        # Extract the plume data
+        plume = self.ncData.variables['spec001_mr']
+        plume = plume[0, :, idx, level, :, :]
+        # We do not want distinction for each release, sum them
+        # ADD RELEASE DISTINCTION
+        plume = np.sum(plume, axis=0)
+
+        # == Prepare figure =====================================
+        # Create figure and axes
+        set_style('ticks')
+        fig = plt.figure(figsize=(10, 8))
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        # Find and stablish its limits
+        if extent:
+            ax.axis(extent)
+        else:
+            lon_max = np.ceil(lon.max())
+            lat_max = np.ceil(lat.max())
+            lon_min = np.floor(lon.min())
+            lat_min = np.floor(lat.min())
+            ax.axis([lon_min, lon_max, lat_min, lat_max])
+        # Draw coastlines
+        ax.coastlines('50m', linewidth=1, color='black')
+        # Prepare the grid
+        gd = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                          linewidth=1, linestyle='--', color='k',
+                          alpha=0.5)
+        gd.xlabels_top = False  # Take out upper labels
+        gd.ylabels_right = False  # Take out right labels
+        gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
+        gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
+        gd.xlabel_style = {'size': 10, 'color': 'k'}
+        gd.ylabel_style = {'size': 10, 'color': 'k'}
+        # Set title
+        ax.set_title(f'{date.strftime("%Y/%m/%d %H:%M")}', color='k')
+
+        # == Plot the data ==============================
+        # Define colorbar limits
+        pMin = plumeLims[0]
+        pMax = plumeLims[1]
+        extend = 'both'
+        # If no max is provided, change pMax and extend
+        if not pMax:
+            pMax = np.ceil(np.max(plume))
+            extend = 'min'
+        # Make sure they're in ascending order
+        if pMax > pMin:
+            levels = np.linspace(pMin, pMax, 10)
+        else:
+            levels = 2
+        # Call contourf
+        c1 = ax.contourf(lon, lat, plume, cmap='jet', levels=levels,
+                         extend=extend)
+        # Call contour
+        c2 = ax.contour(lon, lat, plume, colors=('k',), levels=levels,
+                        linewidths=(.5,))
+
+        # == Make the colorbar ==================================
+        # Define colors outside boundaries
+        c1.cmap.set_under('white')
+        # If there is no data, will throw an error. Use a try
+        try:
+            cb = fig.colorbar(c1, format='%.1f')
+            cb.set_label('Source-Receptor Relationship (s)', color='k')
+            cb.set_tick_params(color='k')
+        except:
+            pass
+
+        return (fig, ax, c1, c2, cb)
+
     def plotPdfMap_plume(self, saveName=None, releases=None, level=0,
                          plumeLims=(0.1, None), dateLims=[None, None],
                          freq='H', extent=None):
@@ -489,7 +532,7 @@ class FLEXPARTOutput():
                         format [lon_min, lon_max, lat_min, lat_max].
                         By default it will use all points available.
         """
-        # Extract metaData
+        # Retrieve metaData
         dates, time, hgt, lat, lon, releases = self.ncDataMeta
         # ADD RELEASES RESTRICTION
         # Define the date range (Assuming it's backwards)
@@ -508,76 +551,71 @@ class FLEXPARTOutput():
         with PdfPages(self.outputDir+saveName) as pdf:
             # Iterate over date range
             for date in dateRange:
-                # Get the index
-                idx = dates.get_loc(date, method='nearest')
-                # Extract the plume data
-                plume = self.ncData.variables['spec001_mr']
-                plume = plume[0, :, idx, level, :, :]
-                # We do not want distinction for each release, sum them
-                plume = np.sum(plume, axis=0)
-                # Create figure and axes
-                set_style('ticks')
-                fig = plt.figure(figsize=(10, 8))
-                ax = plt.axes(projection=ccrs.PlateCarree())
-                # Find and stablish its limits
-                if extent:
-                    ax.axis(extent)
-                else:
-                    lon_max = np.ceil(lon.max())
-                    lat_max = np.ceil(lat.max())
-                    lon_min = np.floor(lon.min())
-                    lat_min = np.floor(lat.min())
-                    ax.axis([lon_min, lon_max, lat_min, lat_max])
-                # Draw coastlines
-                ax.coastlines('50m', linewidth=1, color='black')
-                # Prepare the grid
-                gd = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                                  linewidth=1, linestyle='--', color='k',
-                                  alpha=0.5)
-                gd.xlabels_top = False  # Take out upper labels
-                gd.ylabels_right = False  # Take out right labels
-                gd.xformatter = LONGITUDE_FORMATTER  # Format of lon ticks
-                gd.yformatter = LATITUDE_FORMATTER  # Format of lat ticks
-                gd.xlabel_style = {'size': 10, 'color': 'k'}
-                gd.ylabel_style = {'size': 10, 'color': 'k'}
-                # Set title
-                ax.set_title(f'{date.strftime("%Y/%m/%d %H:%M")}', color='k')
-                # == Plot the data ==============================
-                # Redefine defaults
-                pMin = plumeLims[0]
-                pMax = plumeLims[1]
-                extend = 'min'
-                # If no max is provided, change pMax and extend
-                if not pMax:
-                    pMax = np.ceil(np.max(plume))
-                    extend = 'both'
-                # Make sure they're in ascending order
-                if pMax > pMin:
-                    levels = np.linspace(pMin, pMax, 10)
-                else:
-                    levels = 2
-                # Call contourf
-                c1 = ax.contourf(lon, lat, plume, cmap='jet', levels=levels,
-                                 extend=extend)
-                # Define colors outside boundaries
-                c1.cmap.set_under('white')
-                # Call contour
-                c2 = ax.contour(lon, lat, plume, colors=('k',), levels=levels,
-                                linewidths=(.5,))
-                # Make the colorbar
-                try:
-                    cb = fig.colorbar(c1, format='%.1f')
-                    cb.set_label('Source-Receptor Relationship (s)', color='k')
-                    cb.set_tick_params(color='k')
-                except:
-                    pass
+                # Call 'plotMap_plume'
+                figData = self.plotMap_plume(date, level=0, releases=None,
+                                             extent=None, plumeLims=(0.1, None))
                 # Tighthen it and save to pdf
                 pdf.savefig(dpi=200, bbox_inches='tight', transparent=True)
                 # Close the existing figure to avoid memory overload
-                # plt.show()
                 plt.close()
+
+
+def testing():
+    # Define parameters
+    runDir = 'testData/output_07_MultipleTrajectories/'
+    # Initiate the class
+    FPOut = FLEXPARTOutput(runDir)
+    # print(FPOut.trajDataMeta.head())
+    # print(FPOut.trajData.head())
+
+    # # == Simple plots ===========================================
+    # # Make a plot
+    # fig, ax = FPOut.plotMap_traj()
+    # ax.set_title('Complete Plot')
+    # # Add plots with things
+    # fig, ax = FPOut.plotMap_traj(releases=list(range(1, int(116/2))))
+    # ax.set_title('First Half Plot')
+    # fig, ax = FPOut.plotMap_traj(releases=list(range(int(116/2), 117)))
+    # ax.set_title('Last Half Plot')
+
+    # # == Manage dates ===========================================
+    # # Check releases range
+    # dateRange = FPOut.get_releases_dateRange(show=True)
+    # print(dateRange)
+    # # Restrict the releases range
+    # dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
+    # dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
+    # print(dateRange)
+
+    # # == Folium maps ============================================
+    # # Plot folium map
+    # m = FPOut.plotFoliumMap_traj()
+    # m.save('map_0.html')
+    # m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
+    # m.save('map_1.html')
+
+    # == PDF maps =================================================
+    # # Plot quicklook with limits
+    # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
+    # FPOut.plotPdfMap_plume(saveName='map_2017-08-28-1200.pdf',dateLims=dateLims)
+    # # Plot quicklook without limits
+    # FPOut.plotPdfMap_plume(saveName='map_Full.pdf')
+    # Plot a pdf map with 5 minutes data of one hour
+    dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
+    freq = '5T'
+    extent = [-45, 30, -15, 45]
+    FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
+                           freq=freq, extent=extent)
+    return FPOut
 
 
 if __name__ == '__main__':
     print('Ready to go!')
     FPOut = testing()
+
+    # FPOut = FLEXPARTOutput('testData/output_07_MultipleTrajectories/')
+    # with PdfPages('sadf.pdf') as pdf:
+    #     figData = FPOut.plotMap_plume('2017-08-28 13:00', plumeLims=(0.1, 5),
+    #                                   extent=[-45, 15, -15, 45])
+    #     pdf.savefig(dpi=200, bbox_inches='tight', transparent=True)
+    #     plt.close()
