@@ -475,7 +475,7 @@ class FLEXPARTOutput():
         # Set title
         ax.set_title(f'{date.strftime("%Y/%m/%d %H:%M")}', color='k')
 
-        # == Plot the data ==============================
+        # == Plot the data ======================================
         # Define colorbar limits
         pMin = plumeLims[0]
         pMax = plumeLims[1]
