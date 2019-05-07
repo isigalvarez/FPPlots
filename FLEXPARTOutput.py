@@ -74,7 +74,7 @@ class FLEXPARTOutput():
         # If there is one file, save the information
         if len(files) == 1:
             self.ncFile = self.outputDir+files[0]
-            self.ncData = Dataset(self.ncFile)
+            self.ncData = Dataset(self.ncFile, 'r')
             self.ncDataMeta = self.extract_ncMeta()
             print(f' {self.ncFile} found.')
         # IF there is no file or more than one, say it.
@@ -217,8 +217,6 @@ class FLEXPARTOutput():
         Plots a simple map to take a quick look about trajectories. 
 
         Input:
-        - df        Dataframe with trajectories data. If None will
-                    use the data extracted on initialization.
         - releases  List of integers. References the releases numbers
                     to plot
         - extent    Limits of the map (lonMax,lonMin,latMax,latMin). If
@@ -233,6 +231,7 @@ class FLEXPARTOutput():
         # Create a dataframe with only the relevant releases
         dfTemp = df[df['j'].isin(releases)]
         # Create figure and axes
+        set_style('ticks')
         fig = plt.figure(figsize=fsize)
         ax = plt.axes(projection=ccrs.PlateCarree())
         # Find and stablish its limits
@@ -486,7 +485,7 @@ class FLEXPARTOutput():
             extend = 'min'
         # Make sure they're in ascending order
         if pMax > pMin:
-            levels = np.linspace(pMin, pMax, 10)
+            levels = np.linspace(pMin, pMax, 9)
         else:
             levels = 2
         # Call contourf
@@ -552,8 +551,9 @@ class FLEXPARTOutput():
             # Iterate over date range
             for date in dateRange:
                 # Call 'plotMap_plume'
-                figData = self.plotMap_plume(date, level=0, releases=None,
-                                             extent=None, plumeLims=(0.1, None))
+                figData = self.plotMap_plume(date, level=level,
+                                             releases=releases, extent=extent,
+                                             plumeLims=plumeLims)
                 # Tighthen it and save to pdf
                 pdf.savefig(dpi=200, bbox_inches='tight', transparent=True)
                 # Close the existing figure to avoid memory overload
@@ -612,4 +612,3 @@ def testing():
 if __name__ == '__main__':
     print('Ready to go!')
     FPOut = testing()
-
