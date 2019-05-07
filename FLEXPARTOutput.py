@@ -613,9 +613,3 @@ if __name__ == '__main__':
     print('Ready to go!')
     FPOut = testing()
 
-    # FPOut = FLEXPARTOutput('testData/output_07_MultipleTrajectories/')
-    # with PdfPages('sadf.pdf') as pdf:
-    #     figData = FPOut.plotMap_plume('2017-08-28 13:00', plumeLims=(0.1, 5),
-    #                                   extent=[-45, 15, -15, 45])
-    #     pdf.savefig(dpi=200, bbox_inches='tight', transparent=True)
-    #     plt.close()
