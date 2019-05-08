@@ -85,6 +85,87 @@ class FLEXPARTOutput():
 
     def extract_traj(self):
         '''
+        This function is a wrapper for the functions:
+        -   extract_traj_metadata()
+        -   extract_traj_data()
+
+        It extract trajectories data and metada into Dataframes.
+        '''
+        # == Prepare the extraction =============================
+        # Read the file to know metada number of rows and end date
+        with open(self.trajFile, 'r') as f:
+            # Extract the first three rows of the file
+            header = list(csv.reader(f))[:3]
+            # Extract the date and the hour of the end of simulation
+            endDate = header[0][0].split(' ')[0].zfill(8)
+            endHour = header[0][0].split(' ')[1].zfill(6)
+            # Combine them to make a date
+            endDate = pd.to_datetime(endDate+endHour)
+            # Extract the number of rows with trajectories metadata
+            metaRows = 2*int(header[2][0])
+        # Extract data and metadata and return it
+        df_meta = self.extract_traj_metaData(metaRows,endDate)
+        df = self.extract_traj_data(metaRows,df_meta)
+        return df, df_meta
+
+
+    def extract_traj_metaData(self,metaRows,endDate):
+        """
+        Extract meta data about the trajectories contained within
+        the trajectories file.
+
+        The trajectories.txt file has 3 rows for the header and
+        then lists information about all release points in groups
+        of two rows for each release
+
+        Variables provided are in the first row:
+        t_start     Start time of the release (Seconds since the 
+                    begging of the simulation)
+        t_end       End time of the release(Seconds since the 
+                    begging of the simulation)
+        lon_left    Left longitude of the release box
+        lat_bottom  Bottom latitude of the release box
+        lon_right   Right longitude of the release box
+        lat_top     Top latitude of the release box
+        z_bottom    Bottom height of the release box
+        z_top       Top height of the release box
+        spec        Species of the releases
+        n_particles Total number of particles released
+        j           Index associated with the release
+        
+        Variables provided are in the second row:
+        comment     Comment
+        """
+        # == Extract the metadata ===============================
+        # Define headers
+        headers = ['t_start', 't_end', 'lon_left', 'lat_bottom', 'lon_right',
+                   'lat_top', 'z_bottom', 'z_top', 'spec', 'n_particles', 'j',
+                   'comment']
+        # Extract the metadata
+        dfRaw = pd.read_csv(self.trajFile, sep='\s+', engine='python',
+                            skiprows=3, nrows=metaRows, header=None)
+        # Take only the odd rows to extract data about releases
+        df_locs = dfRaw.iloc[0::2].reset_index(drop=True)
+        # Define the release number
+        df_locs['j'] = len(df_locs.index)-df_locs.index.values
+        # Take only the even rows to extract the comments
+        df_commt = dfRaw.iloc[1::2].reset_index(drop=True)
+        # Collapse all columns to make the comment
+        df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
+            lambda x: ' '.join(x), axis=1)
+        # Drop unwanted columns and combine both dataframes
+        df_commt.drop(np.arange(10), inplace=True, axis=1)
+        df_meta = pd.concat([df_locs, df_commt], axis=1)
+        # Rename the columns
+        df_meta.columns = headers
+        # Build the date
+        df_meta['Date'] = endDate + \
+            pd.to_timedelta(df_meta['t_start'].astype(int), 'S')
+        # Return the data
+        return df_meta
+
+    def extract_traj_data(self,metaRows,df_meta):
+        '''
         Extract the trajectories data from a txt file
         and saves it to a pandas Dataframe.
 
@@ -116,45 +197,6 @@ class FLEXPARTOutput():
         fclust_k      Fraction of particles belonging k-th cluster
         rmsclust_k    Horizontal rms distance for k-th cluster
         '''
-        # == Prepare the extraction =============================
-        # Read the file to know metada number of rows and end date
-        with open(self.trajFile, 'r') as f:
-            # Extract the first three rows of the file
-            header = list(csv.reader(f))[:3]
-            # Extract the date and the hour of the end of simulation
-            endDate = header[0][0].split(' ')[0].zfill(8)
-            endHour = header[0][0].split(' ')[1].zfill(6)
-            # Combine them to make a date
-            endDate = pd.to_datetime(endDate+endHour)
-            # Extract the number of rows with trajectories metadata
-            metaRows = 2*int(header[2][0])
-
-        # == Extract the metadata ===============================
-        # Define headers
-        headers = ['t_start', 't_end', 'lon_left', 'lat_down', 'lon_right',
-                   'lat_up', 'z_dowm', 'z_top', 'spec', 'n_particles', 'j',
-                   'comment']
-        # Extract the metadata
-        dfRaw = pd.read_csv(self.trajFile, sep='\s+', engine='python',
-                            skiprows=3, nrows=metaRows, header=None)
-        # Take only the odd rows to extract data about releases
-        df_locs = dfRaw.iloc[0::2].reset_index(drop=True)
-        # Define the release number
-        df_locs['j'] = len(df_locs.index)-df_locs.index.values
-        # Take only the even rows to extract the comments
-        df_commt = dfRaw.iloc[1::2].reset_index(drop=True)
-        # Collapse all columns to make the comment
-        df_commt['Comment'] = df_commt.iloc[:, 0:5].apply(
-            lambda x: ' '.join(x), axis=1)
-        # Drop unwanted columns and combine both dataframes
-        df_commt.drop(np.arange(10), inplace=True, axis=1)
-        df_meta = pd.concat([df_locs, df_commt], axis=1)
-        # Rename the columns
-        df_meta.columns = headers
-        # Build the date
-        df_meta['Date'] = endDate + \
-            pd.to_timedelta(df_meta['t_start'].astype(int), 'S')
-
         # == Extract the data itself ============================
         # Define the variables names
         names = ['j', 't', 'xcenter', 'ycenter', 'zcenter', 'topocenter',
@@ -188,7 +230,7 @@ class FLEXPARTOutput():
         # Concatenate the dataframes
         df = pd.concat(df_list, ignore_index=True)
         # return the data
-        return df, df_meta
+        return df
 
     def extract_nc(self, header=None):
         """
@@ -653,12 +695,12 @@ def combine_netcdf(filesList):
 
 
 def testing():
-    # # == Define parameters for FLEXART Output testing ===========
-    # runDir = 'testData/output_07_MultipleTrajectories/'
-    # # Initiate the class
-    # FPOut = FLEXPARTOutput(runDir)
-    # print(FPOut.trajDataMeta.head())
-    # print(FPOut.trajData.head())
+    # == Define parameters for FLEXART Output testing ===========
+    runDir = 'testData/output_07_MultipleTrajectories/'
+    # Initiate the class
+    FPOut = FLEXPARTOutput(runDir)
+    print(FPOut.trajDataMeta.head())
+    print(FPOut.trajData.head())
 
     # # == Simple plots ===========================================
     # # Make a plot
@@ -699,19 +741,19 @@ def testing():
     # FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
     #                        freq=freq, extent=extent)
 
-    # == Merging netCDF =========================================
-    # Directory where simulations are stored
-    rootDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
-    # Find directories
-    FPDirs = os.listdir(rootDir)
-    # Take only those that are directories
-    FPDirs = [f for f in FPDirs if f.startswith('Flight')]
-    # Build the absolute path
-    FPDirs = [os.path.abspath(f'{rootDir}{f}') for f in FPDirs]
-    # Reduce files
-    newFiles = reduce_netcdf(FPDirs)
-    # Call 'combine_netcdf'
-    combine_netcdf(newFiles)
+    # # == Merging netCDF =========================================
+    # # Directory where simulations are stored
+    # rootDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
+    # # Find directories
+    # FPDirs = os.listdir(rootDir)
+    # # Take only those that are directories
+    # FPDirs = [f for f in FPDirs if f.startswith('Flight')]
+    # # Build the absolute path
+    # FPDirs = [os.path.abspath(f'{rootDir}{f}') for f in FPDirs]
+    # # Reduce files
+    # newFiles = reduce_netcdf(FPDirs)
+    # # Call 'combine_netcdf'
+    # combine_netcdf(newFiles)
 
     # return FPOut
 
