@@ -40,50 +40,78 @@ class FLEXPARTOutput():
         self.runDir = runDir
         self.outputDir = f'{runDir}output/'
         # Initialize variables
-        self.trajFile = ''
-        self.trajData = pd.DataFrame()
-        self.trajDataMeta = pd.DataFrame()
-        self.ncFile = ''
-        self.ncData = []
-        self.ncDataMeta = []
-        # Call load_files()
-        self.load_files()
+        self.trajFiles = None
+        self.trajFilesMeta = None
+        self.trajData = None
+        self.trajDataMeta = None
+        self.ncFile = None
+        self.ncData = None
+        self.ncDataMeta = None
 
-    def load_files(self):
+    def load_netcdf(self, outputDir=None):
         """
-        Looks for data and loads it.
+        Handles the extraction of netcdf data from
+        the given file or files.
         """
-        # Check for trajectories file
-        print("\nLooking for trajectories file... ")
-        files_all = os.listdir(self.outputDir)
-        files = [f for f in files_all if f.startswith('traj') == True]
-        files.sort()
-        # If there is one file, save the information
-        if len(files) == 1:
-            self.trajFile = self.outputDir+files[0]
-            self.trajData, self.trajDataMeta = self.extract_traj()
-            print(f' {self.trajFile} found.')
-        # IF there is no file or more than one, say it.
-        elif len(files) == 0:
-            print(" No file found.")
-        else:
-            print(' More than one file found. Check Output.')
+        # Save outputDir
+        if not outputDir:
+            outputDir = self.outputDir
         # Check for nc files
         print("Looking for netCDF4 file... ")
-        files_all = os.listdir(self.outputDir)
+        files_all = os.listdir(outputDir)
         files = [f for f in files_all if f.endswith('.nc') == True]
         files.sort()
         # If there is one file, save the information
         if len(files) == 1:
-            self.ncFile = self.outputDir+files[0]
+            self.ncFile = outputDir+files[0]
             self.ncData = Dataset(self.ncFile, 'r')
             self.ncDataMeta = self.extract_ncMeta()
             print(f' {self.ncFile} found.')
         # IF there is no file or more than one, say it.
-        else:
+        elif len(files) == 0:
             print(" No file found.")
+        else:
+            pass  # ADD MULTIPLE FILES EXRACTION
 
-    def extract_traj(self):
+    def load_trajectories(self, outputDir=None):
+        """
+        Handles the extraction of trajectories data from
+        the given file or files.
+        """
+        # Save outputDir
+        if not outputDir:
+            outputDir = self.outputDir
+        # Check for trajectories file
+        print("\nLooking for trajectories file... ")
+        files_all = os.listdir(outputDir)
+        files = [f for f in files_all if f.startswith('traj') == True]
+        files.sort()
+        # If there is one file, save the information
+        if len(files) == 1:
+            self.trajFiles = outputDir+files[0]
+            self.trajData, self.trajDataMeta = self.extract_traj()
+            print(f' {self.trajFiles} found.')
+        # If there are two files check for data and metadata
+        elif len(files) == 2:
+            # The last part before the dot should be 'data'
+            if files[0].split('.')[0].split('_')[1] == 'data':
+                self.trajFiles = files[0]
+                self.trajData = pd.read_csv(f'{outputDir}/{files[0]}')
+            else:
+                raise FileNotFoundError(f'Unexpected file: {files[0]}')
+            # The last part before the dot should be 'metaData'
+            if files[1].split('.')[0].split('_')[1] == 'metaData':
+                self.trajFiles = files[0]
+                self.trajData = pd.read_csv(f'{outputDir}/{files[1]}')
+            else:
+                raise FileNotFoundError(f'Unexpected file: {files[1]}')
+        # If there is no file or more than one, say it.
+        elif len(files) == 0:
+            raise FileNotFoundError('No files found')
+        else:
+            raise RuntimeError('More than two files found. Check output.')
+
+    def extract_traj(self, trajFile=None):
         '''
         This function is a wrapper for the functions:
         -   extract_traj_metadata()
@@ -92,8 +120,10 @@ class FLEXPARTOutput():
         It extract trajectories data and metada into Dataframes.
         '''
         # == Prepare the extraction =============================
+        if not trajFile:
+            trajFile = self.trajFiles
         # Read the file to know metada number of rows and end date
-        with open(self.trajFile, 'r') as f:
+        with open(trajFile, 'r') as f:
             # Extract the first three rows of the file
             header = list(csv.reader(f))[:3]
             # Extract the date and the hour of the end of simulation
@@ -104,12 +134,11 @@ class FLEXPARTOutput():
             # Extract the number of rows with trajectories metadata
             metaRows = 2*int(header[2][0])
         # Extract data and metadata and return it
-        df_meta = self.extract_traj_metaData(metaRows,endDate)
-        df = self.extract_traj_data(metaRows,df_meta)
+        df_meta = self.extract_traj_metaData(trajFile, metaRows, endDate)
+        df = self.extract_traj_data(trajFile, metaRows, df_meta)
         return df, df_meta
 
-
-    def extract_traj_metaData(self,metaRows,endDate):
+    def extract_traj_metaData(self, trajFile, metaRows, endDate):
         """
         Extract meta data about the trajectories contained within
         the trajectories file.
@@ -132,7 +161,7 @@ class FLEXPARTOutput():
         spec        Species of the releases
         n_particles Total number of particles released
         j           Index associated with the release
-        
+
         Variables provided are in the second row:
         comment     Comment
         """
@@ -142,7 +171,7 @@ class FLEXPARTOutput():
                    'lat_top', 'z_bottom', 'z_top', 'spec', 'n_particles', 'j',
                    'comment']
         # Extract the metadata
-        dfRaw = pd.read_csv(self.trajFile, sep='\s+', engine='python',
+        dfRaw = pd.read_csv(trajFile, sep='\s+', engine='python',
                             skiprows=3, nrows=metaRows, header=None)
         # Take only the odd rows to extract data about releases
         df_locs = dfRaw.iloc[0::2].reset_index(drop=True)
@@ -164,7 +193,7 @@ class FLEXPARTOutput():
         # Return the data
         return df_meta
 
-    def extract_traj_data(self,metaRows,df_meta):
+    def extract_traj_data(self, trajFile, metaRows, df_meta):
         '''
         Extract the trajectories data from a txt file
         and saves it to a pandas Dataframe.
@@ -197,7 +226,7 @@ class FLEXPARTOutput():
         fclust_k      Fraction of particles belonging k-th cluster
         rmsclust_k    Horizontal rms distance for k-th cluster
         '''
-        # == Extract the data itself ============================
+        # == Define Parameters ==================================
         # Define the variables names
         names = ['j', 't', 'xcenter', 'ycenter', 'zcenter', 'topocenter',
                  'hmixcenter', 'tropocenter', 'pvcenter', 'rmsdist',
@@ -210,8 +239,10 @@ class FLEXPARTOutput():
         # Build the whole namelist
         for i in range(nClusters):
             names += [s+f'_{i+1}' for s in names_cluster]
-        # Extract the data
-        df = pd.read_csv(self.trajFile, engine='python', sep='\s+',
+
+        # == Extract the data ===================================
+        # Call read_csv
+        df = pd.read_csv(trajFile, engine='python', sep='\s+',
                          skiprows=metaRows+3, header=None, names=names)
         # Extract releases number
         releases = df['j'].unique()
@@ -231,6 +262,58 @@ class FLEXPARTOutput():
         df = pd.concat(df_list, ignore_index=True)
         # return the data
         return df
+
+    def combine_trajectories(self, runDirs):
+        """
+        Iterates over a list of FLEXPART simulations directories,
+        looks for the output directory and the trajectories file.
+        
+        Combines all data into a single dataframe and save it to 
+        a new location.
+
+        The returns the new location
+        """
+        # == Find the netrajectories tCDF files =================
+        # Iterate over them finding the nc files
+        filesPaths = []
+        for folder in runDirs:
+            files = os.listdir(f'{folder}/output/')
+            # Take only files ending in .nc
+            files = [file for file in files if file.startswith('traj')]
+            # Add the path
+            filesPaths.append(f'{folder}/output/{files[0]}')
+
+        # == Prepare the output dir =============================
+        # 'Normalize' the path and find the parent directory
+        rootDir = os.path.abspath(runDirs[0])
+        rootDir = os.path.dirname(rootDir)
+        # Create the output directory
+        outputDir = os.path.abspath(f'{rootDir}/output_processed/')
+        if not os.path.exists(outputDir):
+            os.makedirs(outputDir)
+
+        # == Iterate over the trajectory files ==================
+        df_list = []
+        dfMeta_list = []
+        for f in filesPaths:
+            # Call extract_trajectories
+            df, df_meta = self.extract_traj(f)
+            # Append them
+            df_list.append(df)
+            dfMeta_list.append(df_meta)
+        # Concatenate the dataframes
+        df = pd.concat(df_list,axis=1)
+        df_meta = pd.concat(dfMeta_list,axis=1)
+        # Save the files
+        df.to_csv(f'{outputDir}/trajectories_data.csv')
+        df_meta.to_csv(f'{outputDir}/trajectories_metaData.csv')
+        # Reload the internal variables
+        self.trajFiles = f'{outputDir}/trajectories_data.csv'
+        self.trajFilesMeta = f'{outputDir}/trajectories_metaData.csv'
+        self.trajData = df.copy()
+        self.trajDataMeta = df_meta.copy()
+        # Returns the new output directory
+        return outputDir
 
     def extract_nc(self, header=None):
         """
@@ -322,7 +405,7 @@ class FLEXPARTOutput():
         return (fig, ax)
 
     def get_traj_dateRange(self, releases=None, show=False,
-                               dateLims=[None, None]):
+                           dateLims=[None, None]):
         """
         Retrieve information about the date range of the releases. If 
         'show' is set to true it will print the information as well.
@@ -615,12 +698,6 @@ class FLEXPARTOutput():
                 # Close the existing figure to avoid memory overload
                 plt.close()
 
-def combine_trajectories(runDirs):
-    """
-    Iterates over a list of FLEXPART simulations directories,
-    looks for the output directory and the trajectories file.
-    Then it combines the data into two 
-    """
 
 def reduce_netcdf(runDirs):
     """
@@ -645,8 +722,9 @@ def reduce_netcdf(runDirs):
         filesPaths.append(f'{folder}/output/{files[0]}')
 
     # == Prepare the output dir =================================
-    # Find the parent directory
-    rootDir = os.path.dirname(runDirs[0])
+    # 'Normalize' the path and find the parent directory
+    rootDir = os.path.abspath(runDirs[0])
+    rootDir = os.path.dirname(rootDir)
     # Create the output directory
     outputDir = os.path.abspath(rootDir+'/output_processed/')
     if not os.path.exists(outputDir):
@@ -662,7 +740,7 @@ def reduce_netcdf(runDirs):
         data = data['spec001_mr']
         print(f'  Saving file {i+1}...')
         newFile = f'{outputDir}/FPOutput_{str(i).zfill(3)}.nc'
-        data.to_netcdf(newFile,mode='w')
+        data.to_netcdf(newFile, mode='w')
         newFiles.append(newFile)
         print(f'  Closing the file.')
         data.close()
@@ -687,7 +765,8 @@ def combine_netcdf(filesList):
                              parallel=True)
     # Save the new data and close the file
     print('\nCombining the files. \nPlease wait, this may take some time...')
-    nc = data.to_netcdf(f'{outputDir}/FPOutput_merged.nc',mode='w',compute=False)
+    nc = data.to_netcdf(f'{outputDir}/FPOutput_merged.nc',
+                        mode='w', compute=False)
     with ProgressBar():
         results = nc.compute()
     print(' Done.')
@@ -695,14 +774,26 @@ def combine_netcdf(filesList):
 
 
 def testing():
-    # == Define parameters for FLEXART Output testing ===========
-    runDir = 'testData/output_07_MultipleTrajectories/'
-    # Initiate the class
-    FPOut = FLEXPARTOutput(runDir)
-    print(FPOut.trajDataMeta.head())
-    print(FPOut.trajData.head())
+    """
+    A bunch of testing code.
+
+    Uncomment what you need to test.
+    """
+
+    # # == Load simple trajectories data =================================
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # # Load simple trajectories
+    # FPOut.load_trajectories()
+    # print(FPOut.trajDataMeta.info())
+    # print(FPOut.trajData.info())
+    # # Return output
+    # return FPOut
 
     # # == Simple plots ===========================================
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # FPOut.load_trajectories()
     # # Make a plot
     # fig, ax = FPOut.plotMap_traj()
     # ax.set_title('Complete Plot')
@@ -713,6 +804,9 @@ def testing():
     # ax.set_title('Last Half Plot')
 
     # # == Manage dates ===========================================
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # FPOut.load_trajectories()
     # # Check releases range
     # dateRange = FPOut.get_traj_dateRange(show=True)
     # print(dateRange)
@@ -722,6 +816,9 @@ def testing():
     # print(dateRange)
 
     # # == Folium maps ============================================
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # FPOut.load_trajectories()
     # # Plot folium map
     # m = FPOut.plotFoliumMap_traj()
     # m.save('map_0.html')
@@ -729,6 +826,9 @@ def testing():
     # m.save('map_1.html')
 
     # # == PDF maps =================================================
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # FPOut.load_netcdf()
     # # Plot quicklook with limits
     # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
     # FPOut.plotPdfMap_plume(saveName='map_2017-08-28-1200.pdf',dateLims=dateLims)
@@ -741,6 +841,27 @@ def testing():
     # FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
     #                        freq=freq, extent=extent)
 
+    # == Combining trajectories files =============================
+    runDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
+    FPOut = FLEXPARTOutput(runDir)
+    # Try to load a single file (this should fail)
+    try:
+        FPOut.load_trajectories()
+    except:
+        print('Could not find the trajectories file')
+    # Look for the FLEXPART simulations directory
+    FPDirs = [f for f in os.listdir(runDir) if f.startswith('Flight')]
+    FPDirs = [f'{runDir}/{FPdir}/' for FPdir in FPDirs]
+    # Call for 'combine_trajectories'
+    outputDir = FPOut.combine_trajectories(FPDirs)
+    # Try to load again from the processed directory
+    FPOut.load_trajectories(outputDir)
+    # Print results
+    FPOut.trajData.info()
+    FPOut.trajDataMeta.info()
+    # Return output
+    return FPOut
+    
     # # == Merging netCDF =========================================
     # # Directory where simulations are stored
     # rootDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
