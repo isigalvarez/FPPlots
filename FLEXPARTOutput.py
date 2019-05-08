@@ -10,11 +10,13 @@ import csv
 import folium
 import numpy as np
 import pandas as pd
+import xarray as xr
 import matplotlib as mpl
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 
 from seaborn import set_style
+from dask.diagnostics import ProgressBar
 from netCDF4 import Dataset, chartostring
 from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -59,7 +61,7 @@ class FLEXPARTOutput():
         # If there is one file, save the information
         if len(files) == 1:
             self.trajFile = self.outputDir+files[0]
-            self.trajData, self.trajDataMeta = self.extract_trajectories()
+            self.trajData, self.trajDataMeta = self.extract_traj()
             print(f' {self.trajFile} found.')
         # IF there is no file or more than one, say it.
         elif len(files) == 0:
@@ -81,7 +83,7 @@ class FLEXPARTOutput():
         else:
             print(" No file found.")
 
-    def extract_trajectories(self):
+    def extract_traj(self):
         '''
         Extract the trajectories data from a txt file
         and saves it to a pandas Dataframe.
@@ -188,6 +190,18 @@ class FLEXPARTOutput():
         # return the data
         return df, df_meta
 
+    def extract_nc(self, header=None):
+        """
+        Looks for netcdf files and uploads them. If there is more
+        than one it will try to combine them. 
+
+        The file header could be pass to make a specific selection
+        of the netcdf files to be used. For example, if all netcdf
+        files begin with 'Flight', header='Flight' will help
+        taking only those relevant files.
+        """
+        pass
+
     def extract_positions(self, df):
         """
         Converts the trajectories dataframe into a dict with 
@@ -265,7 +279,7 @@ class FLEXPARTOutput():
         # return the figure just in case
         return (fig, ax)
 
-    def get_releases_dateRange(self, releases=None, show=False,
+    def get_traj_dateRange(self, releases=None, show=False,
                                dateLims=[None, None]):
         """
         Retrieve information about the date range of the releases. If 
@@ -559,12 +573,90 @@ class FLEXPARTOutput():
                 # Close the existing figure to avoid memory overload
                 plt.close()
 
+def combine_trajectories(runDirs):
+    """
+    Iterates over a list of FLEXPART simulations directories,
+    looks for the output directory and the trajectories file.
+    Then it combines the data into two 
+    """
+
+def reduce_netcdf(runDirs):
+    """
+    Iterates over a list of FLEXPART simulations directories,
+    looks for the output directory and the netCDF output file.
+    Then it resave the netCDF with only the airtracer data to
+    allow for easy acces later on. 
+
+    Assumes that the directories listed in 'runDirs' are 
+    absolute paths to the FLEXPART simulations directories. 
+    The new output directory will be created in the 'runDirs'
+    parent directory.
+    """
+    # == Find the netCDF files ==================================
+    # Iterate over them finding the nc files
+    filesPaths = []
+    for folder in runDirs:
+        files = os.listdir(f'{folder}/output/')
+        # Take only files ending in .nc
+        files = [file for file in files if file.endswith('.nc')]
+        # Add the path
+        filesPaths.append(f'{folder}/output/{files[0]}')
+
+    # == Prepare the output dir =================================
+    # Find the parent directory
+    rootDir = os.path.dirname(runDirs[0])
+    # Create the output directory
+    outputDir = os.path.abspath(rootDir+'/output_processed/')
+    if not os.path.exists(outputDir):
+        os.makedirs(outputDir)
+
+    # == Clean the files ========================================
+    # Iterate over files
+    print(f'{len(filesPaths)} netCDF files to be processed:')
+    newFiles = []
+    for i, f in enumerate(filesPaths):
+        print(f' Processing file {i+1}...')
+        data = xr.open_dataset(f)
+        data = data['spec001_mr']
+        print(f'  Saving file {i+1}...')
+        newFile = f'{outputDir}/FPOutput_{str(i).zfill(3)}.nc'
+        data.to_netcdf(newFile,mode='w')
+        newFiles.append(newFile)
+        print(f'  Closing the file.')
+        data.close()
+    # Return the files
+    return newFiles
+
+
+def combine_netcdf(filesList):
+    """
+    Combine the netCDF in 'filesList' into a single netCDF file.
+
+    This function should be used with the list of files returned
+    by 'reduce_netcdf'
+    """
+    # == Prepare the output dir =================================
+    # Find the parent directory
+    outputDir = os.path.dirname(filesList[0])
+
+    # == Combine the data files =================================
+    # Load with open_mfdataset
+    data = xr.open_mfdataset(filesList, concat_dim='pointspec',
+                             parallel=True)
+    # Save the new data and close the file
+    print('\nCombining the files. \nPlease wait, this may take some time...')
+    nc = data.to_netcdf(f'{outputDir}/FPOutput_merged.nc',mode='w',compute=False)
+    with ProgressBar():
+        results = nc.compute()
+    print(' Done.')
+    data.close()
+
 
 def testing():
-    # Define parameters
-    runDir = 'testData/output_07_MultipleTrajectories/'
-    # Initiate the class
-    FPOut = FLEXPARTOutput(runDir)
+    # # == Define parameters for FLEXART Output testing ===========
+    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # # Initiate the class
+    # FPOut = FLEXPARTOutput(runDir)
     # print(FPOut.trajDataMeta.head())
     # print(FPOut.trajData.head())
 
@@ -580,11 +672,11 @@ def testing():
 
     # # == Manage dates ===========================================
     # # Check releases range
-    # dateRange = FPOut.get_releases_dateRange(show=True)
+    # dateRange = FPOut.get_traj_dateRange(show=True)
     # print(dateRange)
     # # Restrict the releases range
     # dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
-    # dateRange = FPOut.get_releases_dateRange(show=True, dateLims=dateLims)
+    # dateRange = FPOut.get_traj_dateRange(show=True, dateLims=dateLims)
     # print(dateRange)
 
     # # == Folium maps ============================================
@@ -594,19 +686,34 @@ def testing():
     # m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
     # m.save('map_1.html')
 
-    # == PDF maps =================================================
+    # # == PDF maps =================================================
     # # Plot quicklook with limits
     # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
     # FPOut.plotPdfMap_plume(saveName='map_2017-08-28-1200.pdf',dateLims=dateLims)
     # # Plot quicklook without limits
     # FPOut.plotPdfMap_plume(saveName='map_Full.pdf')
-    # Plot a pdf map with 5 minutes data of one hour
-    dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
-    freq = '5T'
-    extent = [-45, 30, -15, 45]
-    FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
-                           freq=freq, extent=extent)
-    return FPOut
+    # # Plot a pdf map with 5 minutes data of one hour
+    # dateLims = ['2017-08-28 12:00', '2017-08-28 13:00']
+    # freq = '5T'
+    # extent = [-45, 30, -15, 45]
+    # FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
+    #                        freq=freq, extent=extent)
+
+    # == Merging netCDF =========================================
+    # Directory where simulations are stored
+    rootDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
+    # Find directories
+    FPDirs = os.listdir(rootDir)
+    # Take only those that are directories
+    FPDirs = [f for f in FPDirs if f.startswith('Flight')]
+    # Build the absolute path
+    FPDirs = [os.path.abspath(f'{rootDir}{f}') for f in FPDirs]
+    # Reduce files
+    newFiles = reduce_netcdf(FPDirs)
+    # Call 'combine_netcdf'
+    combine_netcdf(newFiles)
+
+    # return FPOut
 
 
 if __name__ == '__main__':
