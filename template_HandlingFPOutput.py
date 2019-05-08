@@ -41,7 +41,7 @@ FP2_traj_folium = FP2.plotFoliumMap_traj()
 FP2_traj_folium.save('F13_trajFolium_CDS-ON.html')
 
 # Single Plume for sim 1
-FP1_plume_figData = FP1.plotMap_plume('2017-08-28 08:00', plumeLims=(0.1, None),
+FP1_plume_figData = FP1.plotMap_plume('2017-08-28 08:00', plumeLims=(0.001, None),
                                       extent=[-40, -15, 0, 20])
 title = FP1_plume_figData[1].get_title()
 FP1_plume_figData[1].set_title(f'Flight 13 Plumes\n{title}\nCDS OFF')
@@ -58,6 +58,21 @@ FP2_plume_figData[0].savefig('F13_plume_CDS-ON')
 FP1_plume_figData = FP1.plotPdfMap_plume()
 FP2_plume_figData = FP2.plotPdfMap_plume()
 
+## Reduce the low limit for plume
+# Sim1
+FP1_plume_figData = FP1.plotMap_plume('2017-08-28 08:00',
+                                      plumeLims=(0.001, None),
+                                      extent=[-40, 30, -5, 25])
+title = FP1_plume_figData[1].get_title()
+FP1_plume_figData[1].set_title(f'Flight 13 Plumes\n{title}\nCDS OFF')
+FP1_plume_figData[0].savefig('F13_plume_CDS-OFF_LowLims')
+# Sim2
+FP2_plume_figData = FP1.plotMap_plume('2017-08-28 08:00',
+                                      plumeLims=(0.001, None),
+                                      extent=[-40, 30, -5, 25])
+title = FP2_plume_figData[1].get_title()
+FP2_plume_figData[1].set_title(f'Flight 13 Plumes\n{title}\nCDS OFF')
+FP2_plume_figData[0].savefig('F13_plume_CDS-ON_LowLims')
 
 # == Flight 13 Complete plume plot ==========================
 # Define run directory
