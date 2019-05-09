@@ -11,13 +11,17 @@ from FLEXPARTOutput import FLEXPARTOutput
 # Directory where simulations are stored
 simDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/'
 # Define two simulations to check
-sim1 = 'CAFE_F13_splitted/Flight13_20170831_95500/'
-sim2 = 'CAFE_F13_splitted_CDS/Flight13_20170831_95500/'
+sim1 = 'CAFE_F13_splitted/Flight13_20170831_095500/output/'
+sim2 = 'CAFE_F13_splitted_CDS/Flight13_20170831_095500/output/'
 
 # == Initialize FPOutput ====================================
 # Call FLEXPARTOutput
-FP1 = FLEXPARTOutput(simDir+sim1)
-FP2 = FLEXPARTOutput(simDir+sim2)
+FP1 = FLEXPARTOutput(simDir+sim1+'output/')
+FP1.load_trajectories()
+FP1.load_netcdf()
+FP2 = FLEXPARTOutput(simDir+sim2+'output/')
+FP2.load_trajectories()
+FP2.load_netcdf()
 
 # == Plotting ===============================================
 # Trajectories for sim 1
