@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 from seaborn import set_style
 from dask.diagnostics import ProgressBar
-from netCDF4 import chartostring
 from matplotlib.backends.backend_pdf import PdfPages
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
