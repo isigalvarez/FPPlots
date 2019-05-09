@@ -387,9 +387,6 @@ class FLEXPARTOutput():
             newFiles.append(newFile)
             print(f'  Closing the file.')
             data.close()
-
-        with ProgressBar():
-            results = nc.compute()
         # Return the files
         return newFiles
 
