@@ -26,19 +26,21 @@ class FLEXPARTOutput():
     """
     Handle output from a FLEXPART simulation.
 
+    Requires the directory where FLEXPART output
+    files are stored at initializaton.
+
     (!) This code was developed to work with
-    bacwards simulations. Funny stuff may happen
+    backwards simulations. Funny stuff may happen
     when applied on forward output. Please check 
     results carefully.
     """
 
-    def __init__(self, runDir):
+    def __init__(self, outputDir):
         """
         Initialize the class attributes
         """
-        # FLEXPART simulation directory and output
-        self.runDir = runDir
-        self.outputDir = f'{runDir}output/'
+        # FLEXPART output directory
+        self.outputDir = outputDir
         # Initialize variables
         self.trajFiles = None
         self.trajFilesMeta = None
@@ -101,8 +103,8 @@ class FLEXPARTOutput():
                 raise FileNotFoundError(f'Unexpected file: {files[0]}')
             # The last part before the dot should be 'metaData'
             if files[1].split('.')[0].split('_')[1] == 'metaData':
-                self.trajFiles = files[0]
-                self.trajData = pd.read_csv(f'{outputDir}/{files[1]}')
+                self.trajFilesMeta = files[1]
+                self.trajDataMeta = pd.read_csv(f'{outputDir}/{files[1]}')
             else:
                 raise FileNotFoundError(f'Unexpected file: {files[1]}')
         # If there is no file or more than one, say it.
@@ -263,55 +265,59 @@ class FLEXPARTOutput():
         # return the data
         return df
 
-    def combine_trajectories(self, runDirs):
+    def combine_trajectories(self, runDirs, saveDir):
         """
-        Iterates over a list of FLEXPART simulations directories,
-        looks for the output directory and the trajectories file.
-        
-        Combines all data into a single dataframe and save it to 
-        a new location.
+        Combines all trajectories data and saves in two new
+        dataframes, one for trajectories and one for metadata.
+        Saves the files in a directory 'output_processed/' in
+        the 'saveDir' directory. Return the new location.
 
-        The returns the new location
+        This function will replace the 'j' release index with a 
+        new one based on the number of total trajectories
+        combined.
         """
         # == Find the netrajectories tCDF files =================
         # Iterate over them finding the nc files
         filesPaths = []
         for folder in runDirs:
-            files = os.listdir(f'{folder}/output/')
-            # Take only files ending in .nc
+            files = os.listdir(f'{folder}/')
+            # Take only files starting with 'traj'
             files = [file for file in files if file.startswith('traj')]
             # Add the path
-            filesPaths.append(f'{folder}/output/{files[0]}')
+            filesPaths.append(f'{folder}/{files[0]}')
 
         # == Prepare the output dir =============================
-        # 'Normalize' the path and find the parent directory
-        rootDir = os.path.abspath(runDirs[0])
-        rootDir = os.path.dirname(rootDir)
         # Create the output directory
-        outputDir = os.path.abspath(f'{rootDir}/output_processed/')
+        outputDir = os.path.abspath(f'{saveDir}/output_processed/')
         if not os.path.exists(outputDir):
             os.makedirs(outputDir)
 
         # == Iterate over the trajectory files ==================
         df_list = []
         dfMeta_list = []
+        accumReleases = 0
         for f in filesPaths:
             # Call extract_trajectories
             df, df_meta = self.extract_traj(f)
+            # Extract the number of current releases
+            currentReleases = len(df['j'].unique())
+            # Create a mapping dict to rename the 'j' index
+            oldValues = df['j'].unique()
+            newValues = np.arange(1, currentReleases+1)+accumReleases
+            mapDict = dict(zip(oldValues, newValues))
+            # Note down the number of releases so far
+            accumReleases += currentReleases
+            # Remap the 'j' index
+            df['j'].replace(mapDict, inplace=True)
             # Append them
             df_list.append(df)
             dfMeta_list.append(df_meta)
         # Concatenate the dataframes
-        df = pd.concat(df_list,axis=1)
-        df_meta = pd.concat(dfMeta_list,axis=1)
+        df = pd.concat(df_list, ignore_index=True)
+        df_meta = pd.concat(dfMeta_list, ignore_index=True)
         # Save the files
         df.to_csv(f'{outputDir}/trajectories_data.csv')
         df_meta.to_csv(f'{outputDir}/trajectories_metaData.csv')
-        # Reload the internal variables
-        self.trajFiles = f'{outputDir}/trajectories_data.csv'
-        self.trajFilesMeta = f'{outputDir}/trajectories_metaData.csv'
-        self.trajData = df.copy()
-        self.trajDataMeta = df_meta.copy()
         # Returns the new output directory
         return outputDir
 
@@ -715,16 +721,16 @@ def reduce_netcdf(runDirs):
     # Iterate over them finding the nc files
     filesPaths = []
     for folder in runDirs:
-        files = os.listdir(f'{folder}/output/')
+        files = os.listdir(f'{folder}/')
         # Take only files ending in .nc
         files = [file for file in files if file.endswith('.nc')]
         # Add the path
-        filesPaths.append(f'{folder}/output/{files[0]}')
+        filesPaths.append(f'{folder}/{files[0]}')
 
     # == Prepare the output dir =================================
     # 'Normalize' the path and find the parent directory
     rootDir = os.path.abspath(runDirs[0])
-    rootDir = os.path.dirname(rootDir)
+    rootDir = os.path.dirname(os.path.dirname(rootDir))
     # Create the output directory
     outputDir = os.path.abspath(rootDir+'/output_processed/')
     if not os.path.exists(outputDir):
@@ -781,7 +787,7 @@ def testing():
     """
 
     # # == Load simple trajectories data =================================
-    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # runDir = 'testData/output_07_MultipleTrajectories/output/'
     # FPOut = FLEXPARTOutput(runDir)
     # # Load simple trajectories
     # FPOut.load_trajectories()
@@ -791,7 +797,7 @@ def testing():
     # return FPOut
 
     # # == Simple plots ===========================================
-    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # runDir = 'testData/output_07_MultipleTrajectories/output/'
     # FPOut = FLEXPARTOutput(runDir)
     # FPOut.load_trajectories()
     # # Make a plot
@@ -804,7 +810,7 @@ def testing():
     # ax.set_title('Last Half Plot')
 
     # # == Manage dates ===========================================
-    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # runDir = 'testData/output_07_MultipleTrajectories/output/'
     # FPOut = FLEXPARTOutput(runDir)
     # FPOut.load_trajectories()
     # # Check releases range
@@ -816,17 +822,22 @@ def testing():
     # print(dateRange)
 
     # # == Folium maps ============================================
-    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # runDir = 'testData/output_07_MultipleTrajectories/output/'
     # FPOut = FLEXPARTOutput(runDir)
     # FPOut.load_trajectories()
+    # # Check releases range
+    # dateRange = FPOut.get_traj_dateRange(show=True)
     # # Plot folium map
     # m = FPOut.plotFoliumMap_traj()
-    # m.save('map_0.html')
+    # m.save(runDir+'map_0.html')
+    # # Restrict the releases range
+    # dateLims = ['2017-08-28 00:00', '2017-08-28 02:00']
+    # dateRange = FPOut.get_traj_dateRange(show=True, dateLims=dateLims)
     # m = FPOut.plotFoliumMap_traj(releases=dateRange.keys())
-    # m.save('map_1.html')
+    # m.save(runDir+'map_1.html')
 
     # # == PDF maps =================================================
-    # runDir = 'testData/output_07_MultipleTrajectories/'
+    # runDir = 'testData/output_07_MultipleTrajectories/output/'
     # FPOut = FLEXPARTOutput(runDir)
     # FPOut.load_netcdf()
     # # Plot quicklook with limits
@@ -840,28 +851,31 @@ def testing():
     # extent = [-45, 30, -15, 45]
     # FPOut.plotPdfMap_plume(saveName='map_5Min_limited.pdf', dateLims=dateLims,
     #                        freq=freq, extent=extent)
+    # # Return output
+    # return FPOut
 
-    # == Combining trajectories files =============================
-    runDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
-    FPOut = FLEXPARTOutput(runDir)
-    # Try to load a single file (this should fail)
-    try:
-        FPOut.load_trajectories()
-    except:
-        print('Could not find the trajectories file')
-    # Look for the FLEXPART simulations directory
-    FPDirs = [f for f in os.listdir(runDir) if f.startswith('Flight')]
-    FPDirs = [f'{runDir}/{FPdir}/' for FPdir in FPDirs]
-    # Call for 'combine_trajectories'
-    outputDir = FPOut.combine_trajectories(FPDirs)
-    # Try to load again from the processed directory
-    FPOut.load_trajectories(outputDir)
-    # Print results
-    FPOut.trajData.info()
-    FPOut.trajDataMeta.info()
-    # Return output
-    return FPOut
-    
+    # # == Combining trajectories files =============================
+    # runDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
+    # FPOut = FLEXPARTOutput(runDir)
+    # # Try to load a single file (this should fail)
+    # try:
+    #     FPOut.load_trajectories()
+    # except:
+    #     print('Could not find the trajectories file')
+    # # Look for the FLEXPART simulations directory
+    # FPDirs = [f for f in os.listdir(runDir) if f.startswith('Flight')]
+    # FPDirs = [f'{runDir}/{FPdir}/output/' for FPdir in FPDirs]
+    # # Call for 'combine_trajectories'
+    # outputDir = FPOut.combine_trajectories(FPDirs,runDir)
+    # # Try to load again from the processed directory
+    # FPOut.load_trajectories(outputDir)
+    # # Print results
+    # FPOut.trajData.info()
+    # FPOut.trajDataMeta.info()
+    # print(FPOut.trajData['j'].unique())
+    # # Return output
+    # return FPOut
+
     # # == Merging netCDF =========================================
     # # Directory where simulations are stored
     # rootDir = 'D:/Datos/0 - Trabajo/FLEXPART/Mistral_RunsIsi/CAFE_F13_splitted/'
